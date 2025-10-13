@@ -1,0 +1,18 @@
+# ide
+.idea/
+__pycache__/
+
+# data
+demo_input/
+demo_output/
+notebooks/*.json
+
+# aux
+static/
+src/utils/sdf/build/
+src/utils/sdf/dist/
+src/utils/sdf/sdf_pytorch.egg-info/
+
+# drafts
+draft*
+*_poc/
