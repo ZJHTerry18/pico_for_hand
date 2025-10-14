@@ -22,11 +22,14 @@ class ConfigPack:
         sparse_dense_mapping_file: str = 'sparse_dense_mapping.json',
         # optimization nr of steps
         nr_phase_1_steps: int = 250,
+        lr_rotation_phase_1: float = 0.04,
+        lr_translation_phase_1: float = 0.02,
         skip_phase_1: bool = False,
         nr_phase_2_steps: int = 1500,
         skip_phase_2: bool = False,
         nr_phase_3_steps: int = 1000,
         skip_phase_3: bool = False,
+        loss_weights: dict = default_loss_weights,
     ):
         self.hand_inference_file = hand_inference_file
         # self.hand_detection_file = hand_detection_file
@@ -37,11 +40,31 @@ class ConfigPack:
         self.sparse_dense_mapping_file = sparse_dense_mapping_file
 
         self.nr_phase_1_steps = nr_phase_1_steps
+        self.lr_rotation_phase_1 = lr_rotation_phase_1
+        self.lr_translation_phase_1 = lr_translation_phase_1
         self.skip_phase_1 = skip_phase_1
         self.nr_phase_2_steps = nr_phase_2_steps
         self.skip_phase_2 = skip_phase_2
         self.nr_phase_3_steps = nr_phase_3_steps
         self.skip_phase_3 = skip_phase_3
 
+        self.loss_weights = loss_weights
 
 default_config = ConfigPack()
+
+arctic_config = ConfigPack(
+    nr_phase_1_steps=5000,
+    lr_rotation_phase_1=0.2,
+    lr_translation_phase_1=0.1,
+    skip_phase_1=False,
+    nr_phase_2_steps=1500,
+    skip_phase_2=True,
+    nr_phase_3_steps=1000,
+    skip_phase_3=True,
+    loss_weights=default_loss_weights,
+)
+
+CONFIGS_FACTORY = {
+    "default": default_config,
+    "arctic": arctic_config,
+}

@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import trimesh
 import os
+import torch
 
 from src.constants import IMAGE_SIZE, SMPLX_FACES_PATH
 from src.utils.structs import HandParams, ObjectParams
@@ -26,10 +27,10 @@ def load_hand_params(hand_inference_file: str, hand_detection_file: str = None, 
     left_right = "left" if "left" in hand_inference_file else "right"
 
     ## For now, directly use the posed hand vertices instead of MANO
-    # save the centroid offset
+    # # save the centroid offset
     centroid_offset = hand_mesh.centroid
-    # center the mesh
-    hand_mesh.apply_translation(-centroid_offset)
+    # # center the mesh
+    # hand_mesh.apply_translation(-centroid_offset)
 
     ## For now, skip the part of parameterization and mask loading
     # smplx_params = {
@@ -63,14 +64,22 @@ def load_hand_params(hand_inference_file: str, hand_detection_file: str = None, 
     return hand_params
     
 
-def load_object_params(object_mesh_file: str, object_detection_file: str = None, imgsize: np.ndarray = None) -> ObjectParams:
+def load_object_params(object_mesh_file: str, object_detection_file: str = None, imgsize: np.ndarray = None,
+                       trans_mat=None) -> ObjectParams:
     obj_mesh = trimesh.load(object_mesh_file)
 
-    # rotate object 90 degrees around x-axis (mostly upright in objaverse)
-    obj_mesh.apply_transform(trimesh.transformations.rotation_matrix(-np.pi/2, [1, 0, 0]))
-
-    # center the mesh
-    obj_mesh.apply_translation(-obj_mesh.centroid)
+    # initialize object pose, according to how the HOI dataset defines it
+    if trans_mat is None:
+        # rotate object 90 degrees around x-axis (mostly upright in objaverse)
+        obj_mesh.apply_transform(trimesh.transformations.rotation_matrix(-np.pi/2, [1, 0, 0]))
+        # center the mesh
+        obj_mesh.apply_translation(-obj_mesh.centroid)
+    else:
+        rot_mat = torch.eye(4, dtype=torch.float)
+        rot_mat[:3, :3] = trans_mat[:3, :3]
+        trans_vec = trans_mat[:3, 3]
+        obj_mesh.apply_translation(trans_vec)
+        obj_mesh.apply_transform(rot_mat)
 
     # # For now, skip the object mask
     # # load object mask and resize to image size

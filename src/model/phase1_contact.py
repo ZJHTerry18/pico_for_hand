@@ -4,7 +4,7 @@ import trimesh
 from tqdm.auto import tqdm
 
 from src.utils.contact_mapping import calculate_object_points, interpret_contact_points, apply_transformation
-from src.utils.geometry import rot6d_to_matrix
+from src.utils.geometry import rot6d_to_matrix, rotation_matrix_to_angle_axis
 from src.utils.structs import HandParams, ObjectParams
 
 
@@ -36,21 +36,27 @@ class Phase_1_Optimizer(nn.Module):
         return torch.nn.functional.mse_loss(self.hand_points, new_object_points)
 
     def forward(self):
+        # print(f"{self.rotation.detach().cpu()} {self.translation.detach().cpu()}")
         new_obj_vertices = apply_transformation(self.obj_vertices, self.rotation, self.translation)
         loss = self.calculate_contact_loss(new_obj_vertices)
         return loss
    
 
 def optimize_phase1_contact(
-    hand_params: HandParams, object_params: ObjectParams, contact_mapping: dict, sparse_dense_mapping: dict,
-    nr_phase_1_steps: int,
+    hand_params: HandParams, object_params: ObjectParams, contact_mapping: dict, sparse_dense_mapping: dict = None,
+    **kwargs
 ):
     object_mesh = trimesh.Trimesh(vertices=object_params.vertices.detach().cpu().numpy(), faces=object_params.faces.detach().cpu().numpy())
     hand_mesh = trimesh.Trimesh(vertices=hand_params.vertices.detach().cpu().numpy(), faces=hand_params.faces.detach().cpu().numpy())
 
     hand_points, object_points = interpret_contact_points(
-        contact_mapping, sparse_dense_mapping, hand_mesh.vertices, object_mesh, hand_params.left_right,
+        contact_mapping, hand_mesh.vertices, object_mesh.vertices, object_mesh, hand_params.left_right,
+        sparse_dense_map=sparse_dense_mapping,
     )
+
+    nr_phase_1_steps = kwargs["nr_phase_1_steps"]
+    lr_rotation = kwargs["lr_rotation_phase_1"]
+    lr_translation = kwargs["lr_translation_phase_1"]
 
     rotation_init = torch.tensor([1.01, 0.01, 0.01, 1.01, 0.01, 0.01], requires_grad=True).cuda()
     translation_init = torch.tensor([0.0, 0.0, 0.0], requires_grad=True).cuda()
@@ -69,8 +75,8 @@ def optimize_phase1_contact(
 
     # optimizer with separate learning rates for each parameter
     optimizer = torch.optim.Adam([
-        {'params': [model.rotation], 'lr': 0.04},
-        {'params': [model.translation], 'lr': 0.02},
+        {'params': [model.rotation], 'lr': lr_rotation},
+        {'params': [model.translation], 'lr': lr_translation},
     ])
 
     loop = tqdm(total=nr_phase_1_steps)
@@ -84,7 +90,7 @@ def optimize_phase1_contact(
         loop.update()
 
     object_parameters = {}
-    object_parameters["rotation"] = rot6d_to_matrix(model.rotation)[0].detach()
+    object_parameters["rotation"] = rotation_matrix_to_angle_axis(rot6d_to_matrix(model.rotation).detach())
     object_parameters["translation"] = model.translation.unsqueeze(0).detach()
     transformed_obj_vertices = apply_transformation(object_params.vertices, model.rotation, model.translation)
     object_parameters['vertices'] = transformed_obj_vertices.detach()

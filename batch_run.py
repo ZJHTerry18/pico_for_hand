@@ -4,7 +4,7 @@ import argparse
 from tqdm import tqdm
 import glob
 
-from src.hand_dataset import HandDataset
+from dataset.hand_dataset import HandDataset
 from src.utils.load_utils import load_image, load_hand_params, load_object_params
 from src.utils.contact_mapping import load_contact_mapping, load_sparse_dense_mapping
 from src.utils.save_results import save_phase_results

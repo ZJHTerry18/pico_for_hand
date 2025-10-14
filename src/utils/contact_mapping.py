@@ -87,7 +87,7 @@ def load_sparse_dense_mapping(sparse_dense_map_path: str):
     return sparse_dense_map
 
 
-def interpret_contact_points(contact_map, sparse_dense_map, hand_vertices, obj_mesh, left_right):
+def interpret_contact_points(contact_map, hand_vertices, object_vertices, obj_mesh, left_right, sparse_dense_map=None):
     hand_points = []
     object_points = []
     for shapekey in contact_map:
@@ -96,8 +96,9 @@ def interpret_contact_points(contact_map, sparse_dense_map, hand_vertices, obj_m
                 if point.startswith('v'):  # Single vertex
                     idx = int(point.split()[1])
                     # Because our hand mesh is sparse but the saved contact vertices are dense, we need to map the index from dense back to sparse
-                    mapped_idx = sparse_dense_map[left_right]["dense2sparse"][idx]
-                    hand_points.append(hand_vertices[mapped_idx])
+                    if sparse_dense_map is not None:
+                        idx = sparse_dense_map[left_right]["dense2sparse"][idx]
+                    hand_points.append(hand_vertices[idx])
         elif shapekey.startswith('objShape'):  # Processing object mesh points
             for point in contact_map[shapekey]:
                 if point.startswith('f'):  # Face with Barycentric coordinates
@@ -112,7 +113,8 @@ def interpret_contact_points(contact_map, sparse_dense_map, hand_vertices, obj_m
                 elif point.startswith('e'):  # Edge
                     raise NotImplementedError("Edge contact points are not supported yet")
                 elif point.startswith('v'):
-                    raise NotImplementedError("Single vertex contact points are not supported yet")
+                    idx = int(point.split()[1])
+                    object_points.append(object_vertices[idx])
 
     hand_points = torch.from_numpy(np.asarray(hand_points)).float().cuda()
     object_points = torch.from_numpy(np.asarray(object_points)).float().cuda()
@@ -154,6 +156,9 @@ def calculate_object_points(transformed_vertices, contact_data, mesh_obj_faces):
                     # Calculate the point using Barycentric coordinates with PyTorch operations
                     point = vertices[0] * bary_coords[0] + vertices[1] * bary_coords[1] + vertices[2] * (1 - bary_coords[0] - bary_coords[1])
                     object_points.append(point)
+                elif point.startswith('v'):
+                    idx = int(point.split()[1])
+                    object_points.append(transformed_vertices[idx])
 
     # Stack the list of tensors into a single tensor
     object_points_tensor = torch.stack(object_points)

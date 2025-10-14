@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import trimesh
+import json
 from PIL import Image
 
 from src.constants import COLOR_HUMAN_BLUE, COLOR_OBJECT_RED
@@ -11,25 +12,39 @@ from src.utils.renderer_out import render_overlaid_view, render_side_views
 def save_phase_results(
     img_filename: str,
     output_folder: str,
-    img: np.ndarray,
-    hand_params: HandParams,
-    object_params: ObjectParams,
+    sample: dict,
+    object_phase_params: dict,
     phase: int,
 ):
     # common folder, already exists if not first image
     os.makedirs(output_folder, exist_ok=True)
     
     # save the combined mesh
+    hand_params = sample["hand_params"]
+    object_params = sample["object_params"]
     mesh_h = trimesh.Trimesh(vertices=hand_params.vertices.detach().cpu().numpy(), faces=hand_params.faces.detach().cpu().numpy())
     mesh_h.visual.face_colors = COLOR_HUMAN_BLUE
     mesh_o = trimesh.Trimesh(vertices=object_params.vertices.detach().cpu().numpy(), faces=object_params.faces.detach().cpu().numpy())
     mesh_o.visual.face_colors = COLOR_OBJECT_RED
     mesh = mesh_h + mesh_o
-    mesh.export(os.path.join(output_folder, f'{img_filename}_phase{phase}.obj'))
+    mesh.export(os.path.join(output_folder, f'pred_hoi_mesh_phase{phase}.obj'))
 
     # save rendered views
     # if phase == 3:
     #     visualize_human_object_results(img, img_filename, mesh, hand_params, output_folder)
+
+    # save the estimated object rotation and translation
+    object_gt = sample["gt_pose"]
+    object_preds = {}
+    object_preds["rot"] = object_phase_params["rotation"].tolist()
+    object_preds["trans"] = object_phase_params["translation"].tolist()
+    pred_path = os.path.join(output_folder, f'pred_obj_pose_phase{phase}.json')
+    save_data = {
+        "gt": object_gt,
+        "pred": object_preds,
+    }
+    with open(pred_path, "w") as f:
+        json.dump(save_data, f, indent=4)
 
     return
 
