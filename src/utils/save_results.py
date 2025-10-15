@@ -27,24 +27,31 @@ def save_phase_results(
     mesh_o = trimesh.Trimesh(vertices=object_params.vertices.detach().cpu().numpy(), faces=object_params.faces.detach().cpu().numpy())
     mesh_o.visual.face_colors = COLOR_OBJECT_RED
     mesh = mesh_h + mesh_o
+    mesh_h.export(os.path.join(output_folder, f'pred_hand_mesh_phase{phase}.obj'))
+    mesh_o.export(os.path.join(output_folder, f'pred_obj_mesh_phase{phase}.obj'))
     mesh.export(os.path.join(output_folder, f'pred_hoi_mesh_phase{phase}.obj'))
-
     # save rendered views
     # if phase == 3:
     #     visualize_human_object_results(img, img_filename, mesh, hand_params, output_folder)
 
-    # save the estimated object rotation and translation
+    # save the outputs of the phase
     object_gt = sample["gt_pose"]
     object_preds = {}
     object_preds["rot"] = object_phase_params["rotation"].tolist()
     object_preds["trans"] = object_phase_params["translation"].tolist()
-    pred_path = os.path.join(output_folder, f'pred_obj_pose_phase{phase}.json')
+    metrics = sample["metrics"][f"phase{phase}"]
+    out_path = os.path.join(output_folder, f'pred_phase{phase}.json')
     save_data = {
-        "gt": object_gt,
-        "pred": object_preds,
+        "pose": {
+            "gt": object_gt,
+            "pred": object_preds,
+        },
+        "metrics": metrics
     }
-    with open(pred_path, "w") as f:
+    with open(out_path, "w") as f:
         json.dump(save_data, f, indent=4)
+    
+    # save the metrics
 
     return
 

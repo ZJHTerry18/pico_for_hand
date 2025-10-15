@@ -25,15 +25,20 @@ def get_camera_params(human_bbox):
     return focal, princpt
 
 def get_camera_params_torch(human_bbox):
-    fv1 = torch.tensor(OSX_FOCAL_VIRTUAL[0], dtype=torch.float32, device='cuda')
-    fv2 = torch.tensor(OSX_FOCAL_VIRTUAL[1], dtype=torch.float32, device='cuda')
-    bs1 = torch.tensor(OSX_INPUT_BODY_SHAPE[0], dtype=torch.float32, device='cuda')
-    bs2 = torch.tensor(OSX_INPUT_BODY_SHAPE[1], dtype=torch.float32, device='cuda')
-    pt1 = torch.tensor(OSX_PRINCPT[0], dtype=torch.float32, device='cuda')
-    pt2 = torch.tensor(OSX_PRINCPT[1], dtype=torch.float32, device='cuda')
+    if human_bbox.shape[0] == 4: # 4-d bbox
+        fv1 = torch.tensor(OSX_FOCAL_VIRTUAL[0], dtype=torch.float32, device='cuda')
+        fv2 = torch.tensor(OSX_FOCAL_VIRTUAL[1], dtype=torch.float32, device='cuda')
+        bs1 = torch.tensor(OSX_INPUT_BODY_SHAPE[0], dtype=torch.float32, device='cuda')
+        bs2 = torch.tensor(OSX_INPUT_BODY_SHAPE[1], dtype=torch.float32, device='cuda')
+        pt1 = torch.tensor(OSX_PRINCPT[0], dtype=torch.float32, device='cuda')
+        pt2 = torch.tensor(OSX_PRINCPT[1], dtype=torch.float32, device='cuda')
 
-    focal = torch.stack([fv1 / bs2 * human_bbox[2], fv2 / bs1 * human_bbox[3]], dim=0)
-    princpt = torch.stack([pt1 / bs2 * human_bbox[2] + human_bbox[0], pt2 / bs1 * human_bbox[3] + human_bbox[1]], dim=0)
+        focal = torch.stack([fv1 / bs2 * human_bbox[2], fv2 / bs1 * human_bbox[3]], dim=0)
+        princpt = torch.stack([pt1 / bs2 * human_bbox[2] + human_bbox[0], pt2 / bs1 * human_bbox[3] + human_bbox[1]], dim=0)
+    elif human_bbox.shape == (3, 3): # 3x3 intrinsic matrix
+        focal = torch.stack([human_bbox[0, 0], human_bbox[1, 1]], dim=0)
+        princpt = torch.stack([human_bbox[0, 2], human_bbox[1, 2]], dim=0)
+    
     return focal, princpt
 
 
@@ -78,7 +83,7 @@ def render_overlaid_view(img, mesh, human_bbox, objmesh=None):
 ##############################################
 ##############################################
 class MyDifferentiableRenderer:
-    def __init__(self, img_shape, faces, human_bbox):
+    def __init__(self, img_shape, faces, cam_intrinsic):
         super().__init__()
         self.img_shape = img_shape
         self.faces = faces
@@ -92,7 +97,7 @@ class MyDifferentiableRenderer:
         T = torch.bmm(R, T.unsqueeze(-1)).squeeze(-1)
 
         # Camera parameters
-        focal, princpt = get_camera_params_torch(human_bbox) # Adjusted to return tensors
+        focal, princpt = get_camera_params_torch(cam_intrinsic) # Adjusted to return tensors
 
         self.camera = PerspectiveCameras(
             focal_length=focal.unsqueeze(0),
@@ -106,8 +111,8 @@ class MyDifferentiableRenderer:
 
 
 class MySoftSilhouetteRenderer(MyDifferentiableRenderer):
-    def __init__(self, img_shape, faces, human_bbox):
-        super().__init__(img_shape, faces, human_bbox)
+    def __init__(self, img_shape, faces, cam_intrinsic):
+        super().__init__(img_shape, faces, cam_intrinsic)
 
         blend_params = BlendParams(
             sigma=1e-4,

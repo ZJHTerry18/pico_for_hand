@@ -6,6 +6,7 @@ import torch
 
 from src.constants import IMAGE_SIZE, SMPLX_FACES_PATH
 from src.utils.structs import HandParams, ObjectParams
+from src.utils.renderer_out import MySoftSilhouetteRenderer
 
 
 def load_image(image_path: str) -> np.ndarray:
@@ -65,8 +66,18 @@ def load_hand_params(hand_inference_file: str, hand_detection_file: str = None, 
     
 
 def load_object_params(object_mesh_file: str, object_detection_file: str = None, imgsize: np.ndarray = None,
-                       trans_mat=None) -> ObjectParams:
+                       trans_mat=None, load_obj_mask=False, cam_intrinsic=None) -> ObjectParams:
     obj_mesh = trimesh.load(object_mesh_file)
+    gt_vertices = torch.from_numpy(obj_mesh.vertices).float()
+
+    # render object mask
+    if load_obj_mask:
+        faces = torch.from_numpy(obj_mesh.faces).float().cuda()
+        vertices = torch.from_numpy(obj_mesh.vertices).float().cuda()
+        renderer = MySoftSilhouetteRenderer(img_shape=imgsize, faces=faces, cam_intrinsic=cam_intrinsic)
+        mask = renderer.render(vertices).cpu().numpy()
+    else:
+        mask = None
 
     # initialize object pose, according to how the HOI dataset defines it
     if trans_mat is None:
@@ -80,8 +91,6 @@ def load_object_params(object_mesh_file: str, object_detection_file: str = None,
         trans_vec = trans_mat[:3, 3]
         obj_mesh.apply_translation(trans_vec)
         obj_mesh.apply_transform(rot_mat)
-
-    # # For now, skip the object mask
     # # load object mask and resize to image size
     # detection = np.load(object_detection_file)
     # mask = np.array(detection['mask']).astype(float)
@@ -90,10 +99,10 @@ def load_object_params(object_mesh_file: str, object_detection_file: str = None,
     object_params = ObjectParams(
         vertices = obj_mesh.vertices,
         faces = obj_mesh.faces,
-        # mask = mask,
+        mask = mask,
         scale = obj_mesh.extents.max()
     )
 
     object_params.to_cuda()
-    return object_params
+    return object_params, gt_vertices
 

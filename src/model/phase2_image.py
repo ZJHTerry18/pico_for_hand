@@ -6,9 +6,9 @@ import numpy as np
 from scipy import ndimage
 
 from src.utils.contact_mapping import calculate_object_points, interpret_contact_points, apply_transformation
-from src.utils.geometry import rot6d_to_matrix
+from src.utils.geometry import rot6d_to_matrix, rotation_matrix_to_angle_axis
 from src.utils.renderer_out import MySoftSilhouetteRenderer
-from src.utils.structs import HumanParams, ObjectParams
+from src.utils.structs import HandParams, ObjectParams
 from src.utils.sdf.sdf.sdf_loss import SDFLoss
 
 
@@ -19,10 +19,11 @@ class Phase_2_Optimizer(nn.Module):
         scaling_init,
         human_points,
         object_points,
-        human_params,
+        hand_params,
         object_params,
         contact_mapping,
-        img
+        render_size,
+        cam_intrinsic,
     ):
         super(Phase_2_Optimizer, self).__init__()
 
@@ -33,23 +34,23 @@ class Phase_2_Optimizer(nn.Module):
 
         self.register_buffer('human_points', human_points)
         self.register_buffer('object_points', object_points)
-        self.register_buffer('hum_vertices', human_params.vertices)
-        self.register_buffer('hum_centroid_offset', human_params.centroid_offset)
-        self.register_buffer('hum_bbox', human_params.bbox)
+        self.register_buffer('hum_vertices', hand_params.vertices)
+        self.register_buffer('hum_centroid_offset', hand_params.centroid_offset)
+        # self.register_buffer('hum_bbox', hand_params.bbox)
         self.register_buffer('obj_vertices', object_params.vertices)
         self.register_buffer('obj_faces', object_params.faces)
         self.register_buffer('obj_mask', object_params.mask.float())
         self.register_buffer('obj_init_scaling', torch.tensor([1.0], device='cuda'))
         self.contact_transfer_map = contact_mapping
-        self.img = img
+        self.render_size = render_size
 
-        self.renderer = MySoftSilhouetteRenderer(img.shape, object_params.faces, human_params.bbox)
+        self.renderer = MySoftSilhouetteRenderer(render_size, object_params.faces, cam_intrinsic)
 
         dist_mat = ndimage.distance_transform_edt(1 - self.obj_mask.cpu().numpy())
         self.register_buffer('dist_mat', torch.tensor(dist_mat, device='cuda'))
 
         # SDF collision loss setup
-        self.sdf_loss = SDFLoss(human_params.faces, robustifier=1.0)
+        self.sdf_loss = SDFLoss(hand_params.faces, robustifier=1.0)
 
 
     def calculate_contact_loss(self, upd_obj_vertices):
@@ -86,7 +87,7 @@ class Phase_2_Optimizer(nn.Module):
 
     def calculate_silhouette_loss_iou(self, upd_obj_vertices, distance_penalty=0):
         current_mask = self.renderer.render(
-            upd_obj_vertices + self.hum_centroid_offset
+            upd_obj_vertices #+ self.hum_centroid_offset    # we do not move hand to centroid when loading, so no need to translate it back
         )
         intersection = torch.sum(current_mask * self.obj_mask)
         union = torch.sum((current_mask + self.obj_mask).clamp(0, 1))
@@ -115,16 +116,26 @@ class Phase_2_Optimizer(nn.Module):
    
 
 def optimize_phase2_image(
-    human_params: HumanParams, object_params: ObjectParams, contact_mapping: dict, img: np.ndarray, loss_weights: dict,  nr_phase_2_steps: int,
+    hand_params: HandParams, object_params: ObjectParams, contact_mapping: dict, render_size: list, cam_intrinsic: torch.Tensor, 
+    sparse_dense_mapping: dict=None, **kwargs,
 ):
     object_mesh = trimesh.Trimesh(vertices=object_params.vertices.detach().cpu().numpy(), faces=object_params.faces.detach().cpu().numpy())
-    human_mesh = trimesh.Trimesh(vertices=human_params.vertices.detach().cpu().numpy(), faces=human_params.faces.detach().cpu().numpy())
+    hand_mesh = trimesh.Trimesh(vertices=hand_params.vertices.detach().cpu().numpy(), faces=hand_params.faces.detach().cpu().numpy())
 
-    human_points, object_points = interpret_contact_points(contact_mapping, human_mesh.vertices, object_mesh)
+    human_points, object_points = interpret_contact_points(
+        contact_mapping, hand_mesh.vertices, object_mesh.vertices, object_mesh, hand_params.left_right,
+        sparse_dense_map=sparse_dense_mapping,
+    )
     
     rotation_init = torch.tensor([1.01, 0.01, 0.01, 1.01, 0.01, 0.01], requires_grad=True).cuda()
     translation_init = torch.tensor([0.0, 0.0, 0.0], requires_grad=True).cuda()
     scaling_init = torch.tensor([1.0], requires_grad=True).cuda()
+
+    loss_weights = kwargs["loss_weights"]
+    nr_phase_2_steps = kwargs["nr_phase_2_steps"]
+    lr_rotation_phase_2 = kwargs.get("lr_rotation_phase_2", 0.04)
+    lr_translation_phase_2 = kwargs.get("lr_translation_phase_2", 0.03)
+    lr_scaling_phase_2 = kwargs.get("lr_scaling_phase_2", 0.02)
 
     model = Phase_2_Optimizer(
         rotation_init,
@@ -132,18 +143,19 @@ def optimize_phase2_image(
         scaling_init,
         human_points,
         object_points,
-        human_params,
+        hand_params,
         object_params,
         contact_mapping,
-        img,
+        render_size,
+        cam_intrinsic,
     )
     model.cuda()
 
     # optimizer with separate learning rates for each parameter
     optimizer = torch.optim.Adam([
-        {'params': [model.rotation], 'lr': 0.04},
-        {'params': [model.translation], 'lr': 0.03},
-        {'params': [model.scaling], 'lr': 0.02},
+        {'params': [model.rotation], 'lr': lr_rotation_phase_2},
+        {'params': [model.translation], 'lr': lr_translation_phase_2},
+        {'params': [model.scaling], 'lr': lr_scaling_phase_2},
     ])
 
     loop = tqdm(total=nr_phase_2_steps)
@@ -154,19 +166,19 @@ def optimize_phase2_image(
             k: loss_dict[k] * loss_weights[k.replace("loss", "lw")] for k in loss_dict
         }
         loss = sum(loss_dict_weighted.values())
-        loss.backward(retain_graph=True)
+        loss.backward() # remove retain_graph=True for memory reasons
         optimizer.step()
         loop.set_description(f'loss: {loss.item():.3g}')
         loop.update()
 
-        if i % 10 == 0:
+        if i % 50 == 0:
             loss_str = " | ".join([f"{k}: {loss_dict_weighted[k].item():.3g}" for k in loss_dict_weighted])
             print(loss_str)
-            print("gradients: ", model.rotation.grad, model.translation.grad, model.scaling.grad)
+            # print("gradients: ", model.rotation.grad, model.translation.grad, model.scaling.grad)
 
 
     object_parameters = {}
-    object_parameters["rotation"] = rot6d_to_matrix(model.rotation)[0].detach()
+    object_parameters["rotation"] = rotation_matrix_to_angle_axis(rot6d_to_matrix(model.rotation).detach())
     object_parameters["translation"] = model.translation.unsqueeze(0).detach()
     object_parameters["scaling"] = model.scaling.detach()
     transformed_obj_vertices = apply_transformation(object_params.vertices, model.rotation, model.translation, model.scaling)

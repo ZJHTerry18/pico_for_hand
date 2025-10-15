@@ -1,5 +1,5 @@
-input_dir=$1
-output_dir=$2
+input_dir="/media/ada/SCRATCH/Jiahe/3dhoi/JointTransformer/outputs/render_out_v1"
+output_dir="/media/ada/SCRATCH/Jiahe/3dhoi/JointTransformer/outputs/pico_out_v1_phase2"
 
 python batch_run_generic.py \
     -d arctic \

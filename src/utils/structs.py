@@ -26,6 +26,11 @@ class HandParams:
         # self.bbox = torch.from_numpy(self.bbox).float().cuda()
         # self.mask = torch.tensor(self.mask).cuda()
     
+    def to_cpu(self):
+        self.vertices = self.vertices.detach().cpu().numpy().astype(int)
+        self.faces = self.faces.detach().cpu().numpy().astype(int)
+        self.centroid_offset = self.centroid_offset.detach().cpu().numpy()
+    
     def __str__(self):
         return ('HumanParams:\n'
             f'  - Vertices: {self.vertices.shape}, {type(self.vertices)} {self.vertices[:5]}\n'
@@ -42,19 +47,25 @@ class ObjectParams:
         self,
         vertices,
         faces,
-        # mask,
+        mask,
         scale,
     ):
         self.vertices = vertices
         self.faces = faces
-        # self.mask = mask
+        self.mask = mask
         self.scale = scale
 
     def to_cuda(self):
         self.vertices = torch.from_numpy(self.vertices).float().cuda()
         self.faces = torch.from_numpy(self.faces).float().cuda()
-        # self.mask = torch.tensor(self.mask).cuda()
+        self.mask = torch.tensor(self.mask).cuda() if self.mask is not None else None
         self.scale = torch.tensor(self.scale).float().cuda()
+    
+    def to_cpu(self):
+        self.vertices = self.vertices.detach().cpu().numpy().astype(int)
+        self.faces = self.faces.detach().cpu().numpy().astype(int)
+        self.mask = self.mask.detach().cpu() if self.mask is not None else None
+        self.scale = self.scale.detach().cpu().numpy()
 
     def __str__(self):
         return ('ObjectParams:\n'
