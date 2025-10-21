@@ -48,19 +48,20 @@ class EpicDataset(Dataset):
         return folder_name
 
 class ArcticDataset(Dataset):
-    def __init__(self, data_dir: str, file_list: str=None, cfg=None):
+    def __init__(self, data_dir: str, file_list: str=None, start_idx: int=0, end_idx: int=10**9, 
+                 cfg=None):
         self.data_dir = data_dir
         self.file_list = file_list
         self.cfg = cfg
         self.dataset_samples = []
 
-        self._prepare_data_list()
+        self._prepare_data_list(start_idx, end_idx)
         self._load_meta()
     
     def _load_meta(self,):
         self.diameters = DIAMETERS["arctic"]
 
-    def _prepare_data_list(self,):
+    def _prepare_data_list(self, start_idx, end_idx):
         folders = sorted([x for x in os.listdir(self.data_dir) if os.path.isdir(os.path.join(self.data_dir, x))])
 
         if self.file_list is not None:
@@ -71,6 +72,7 @@ class ArcticDataset(Dataset):
                     self.dataset_samples.append(fol)
         else:
             self.dataset_samples.extend(folders)
+        self.dataset_samples = self.dataset_samples[start_idx:end_idx]
     
     def _check_file(self, file, isdir=False):
         return osp.exists(file)
@@ -146,11 +148,11 @@ class ArcticDataset(Dataset):
         sample["hand_params"] = hand_params
         sample["object_params"] = object_params
         sample["contact_mapping"] = contact_mapping
-        sample["gt_pose"] = d # GT pose in 6-DoF
-        sample["gt_vertices"] = gt_obj_vertices
+        sample["gt_obj_pose"] = d # GT pose in 6-DoF
+        sample["gt_obj_vertices"] = gt_obj_vertices
         sample["render_size"] = render_img_size
         sample["cam_intrinsic"] = cam_intrinsic
-        sample["meta"] = meta_info
+        sample["meta_info"] = meta_info
         sample["metrics"] = dict()
 
         return sample, folder_name

@@ -35,7 +35,7 @@ def save_phase_results(
     #     visualize_human_object_results(img, img_filename, mesh, hand_params, output_folder)
 
     # save the outputs of the phase
-    object_gt = sample["gt_pose"]
+    object_gt = sample["gt_obj_pose"]
     object_preds = {}
     object_preds["rot"] = object_phase_params["rotation"].tolist()
     object_preds["trans"] = object_phase_params["translation"].tolist()

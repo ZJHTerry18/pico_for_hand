@@ -14,14 +14,16 @@ from src.config_packs import default_config, default_loss_weights
 from src.model.phase1_contact import optimize_phase1_contact
 from src.model.phase2_image import optimize_phase2_image
 # from src.phase3_human import optimize_phase3_human
-from src.evaluation.eval_modules import eval_v2v_success
-
+from src.evaluation.eval_modules import eval_v2v_success, eval_contact_dev, eval_mrrpe
 
 def main(dataset, args, cfg = None, loss_weights = None):
     if cfg is None:
         cfg = default_config
     if loss_weights is None:
         loss_weights = default_loss_weights
+
+
+    # TODO: add eval-only codes
 
     for i, data in enumerate(dataset):
         sample, folder_name = data
@@ -43,9 +45,7 @@ def main(dataset, args, cfg = None, loss_weights = None):
             sample["object_params"].vertices = p1_object_params["vertices"]
             torch.cuda.empty_cache()
             # evaluate stage 1
-            metrics = eval_v2v_success(sample["gt_vertices"], sample["object_params"].vertices.detach().cpu(), sample["meta"])
-            sample["metrics"]["phase1"] = metrics
-            print(metrics)
+            sample["metrics"]["phase1"] = evaluation(sample)
             # save results
             save_phase_results(folder_name, output_path, sample, p1_object_params, phase=1)
 
@@ -53,10 +53,9 @@ def main(dataset, args, cfg = None, loss_weights = None):
         if not cfg.skip_phase_2:
             p2_object_params = optimize_phase2_image(**kwargs)
             sample["object_params"].vertices = p2_object_params['vertices']
-            # sample["object_params"].scale = p2_object_params['scaling']
-            metrics = eval_v2v_success(sample["gt_vertices"], sample["object_params"].vertices.detach().cpu(), sample["meta"])
-            sample["metrics"]["phase2"] = metrics
-            print(metrics)
+            # evaluate stage 2
+            sample["metrics"]["phase2"] = evaluation(sample)
+            # save results
             save_phase_results(folder_name, output_path, sample, p2_object_params, phase=2)
 
             torch.cuda.empty_cache()            
@@ -74,7 +73,30 @@ def main(dataset, args, cfg = None, loss_weights = None):
         #     print(f"Sample {folder_name} induces error: {e}. Skip for now.")
         #     continue
 
+def evaluation(sample):
+    metrics = {}
+    v2v_success = eval_v2v_success(
+        sample["gt_obj_vertices"], 
+        sample["object_params"].vertices.detach().cpu(),
+        sample["meta_info"],
+    )
+    cdev = eval_contact_dev(
+        sample["hand_params"].vertices.detach().cpu(),
+        sample["object_params"].vertices.detach().cpu(),
+        sample["contact_mapping"],
+    )
+    mrrpe = eval_mrrpe(
+        sample["hand_params"].vertices.detach().cpu(), # we don't change hand at this moment, so pred equals to gt
+        sample["hand_params"].vertices.detach().cpu(),
+        sample["gt_obj_vertices"],
+        sample["object_params"].vertices.detach().cpu(),
+        sample["meta_info"]
+    )
+    metrics.update(v2v_success)
+    metrics.update(cdev)
+    metrics.update(mrrpe)
 
+    return metrics
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("PICO-fit-for-hand, input parameters")
@@ -82,14 +104,20 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", "-i", type=str, help="dataset directory")
     parser.add_argument("--file_list", "-l", type=str, default=None, help="list (.txt) of all the data to process")
     parser.add_argument("--output_dir", "-o", type=str, help="output directory")
+    parser.add_argument("--eval_only", "-e", action="store_true", help="only do evaluation")
     parser.add_argument("--rewrite", "-r", action="store_true", help="rewrite the outputs even if they exist")
+    parser.add_argument("--start", type=int, default=0, help="start index of the dataset")
+    parser.add_argument("--end", type=int, default=10**9, help="end index of the dataset")
     args = parser.parse_args()
+    print(args.start, args.end)
 
     # Setup configurations and dataset
     cfg = CONFIGS_FACTORY[args.dataset]
     hand_dataset = DATASET_FACTORY[args.dataset](
         data_dir=args.data_dir,
         file_list=args.file_list,
+        start_idx=args.start,
+        end_idx=args.end,
         cfg=cfg,
     )
     

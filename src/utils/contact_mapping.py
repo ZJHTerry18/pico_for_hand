@@ -87,7 +87,7 @@ def load_sparse_dense_mapping(sparse_dense_map_path: str):
     return sparse_dense_map
 
 
-def interpret_contact_points(contact_map, hand_vertices, object_vertices, obj_mesh, left_right, sparse_dense_map=None):
+def interpret_contact_points(contact_map, hand_vertices, object_vertices, obj_mesh=None, left_right=None, sparse_dense_map=None):
     hand_points = []
     object_points = []
     for shapekey in contact_map:
