@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=parallel_pico_arctic
+#SBATCH --job-name=parallel_pico_epic
 #SBATCH --nodes=8
 #SBATCH --ntasks=32
 #SBATCH --gpus-per-node=4
 #SBATCH --time=05:00:00
-#SBATCH --output=logs/slurm-%j.out
-#SBATCH --error=logs/slurm-%j.err
+#SBATCH --output=logs/epic-%j.out
+#SBATCH --error=logs/epic-%j.err
 #SBATCH --mail-user=jiahe.zhao@bristol.ac.uk
 #SBATCH --mail-type=ALL
 
@@ -13,9 +13,11 @@ source ~/.bashrc
 conda activate pico
 mkdir -p logs
 
-TOTAL_SAMPLES=91
-INPUT_DIR="/projects/s5a/jiahezhao/codes/JointTransformer/outputs/render_out_v1"
-OUTPUT_DIR="/projects/s5a/jiahezhao/codes/JointTransformer/outputs/pico_out_v1_phase2_3metric_isambard"
+TOTAL_SAMPLES=321
+INPUT_DIR="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/2025-09-08_gemini_pro"
+OUTPUT_DIR="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/2025-10-23_pico_stage1_321videos_wilorspace"
+# FILE_LIST="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/stage2_annotated_id_20251010.txt"
+FILE_LIST="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/best_dirs_annotations.json"
 
 N_TASKS=$SLURM_NTASKS
 if [ -z "$N_TASKS" ]; then
@@ -39,8 +41,8 @@ srun bash -c "
     echo \"Task \$GLOBAL_RANK (Local GPU: \$LOCAL_RANK) assigned range \$START_IDX to \$END_IDX\"
 
     python batch_run_generic.py \
-        -d arctic \
-        -i $INPUT_DIR -o $OUTPUT_DIR -r \
+        -d epic \
+        -i $INPUT_DIR -o $OUTPUT_DIR -l $FILE_LIST -r \
         --start \$START_IDX --end \$END_IDX 
 "
 

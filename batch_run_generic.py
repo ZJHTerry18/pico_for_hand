@@ -9,7 +9,7 @@ import torch
 
 from src.config_packs import CONFIGS_FACTORY
 from src.dataset.hand_dataset import DATASET_FACTORY
-from src.utils.save_results import save_phase_results
+from src.utils.save_results import save_phase_results, postprocess_results
 from src.config_packs import default_config, default_loss_weights
 from src.model.phase1_contact import optimize_phase1_contact
 from src.model.phase2_image import optimize_phase2_image
@@ -45,18 +45,20 @@ def main(dataset, args, cfg = None, loss_weights = None):
             sample["object_params"].vertices = p1_object_params["vertices"]
             torch.cuda.empty_cache()
             # evaluate stage 1
-            sample["metrics"]["phase1"] = evaluation(sample)
+            if args.do_eval:
+                sample["metrics"]["phase1"] = evaluation(sample)
             # save results
-            save_phase_results(folder_name, output_path, sample, p1_object_params, phase=1)
+            save_phase_results(folder_name, output_path, sample, p1_object_params, phase=1, do_eval=args.do_eval)
 
 
         if not cfg.skip_phase_2:
             p2_object_params = optimize_phase2_image(**kwargs)
             sample["object_params"].vertices = p2_object_params['vertices']
             # evaluate stage 2
-            sample["metrics"]["phase2"] = evaluation(sample)
+            if args.do_eval:
+                sample["metrics"]["phase2"] = evaluation(sample)
             # save results
-            save_phase_results(folder_name, output_path, sample, p2_object_params, phase=2)
+            save_phase_results(folder_name, output_path, sample, p2_object_params, phase=2, do_eval=args.do_eval)
 
             torch.cuda.empty_cache()            
 
@@ -72,6 +74,8 @@ def main(dataset, args, cfg = None, loss_weights = None):
         # except Exception as e:
         #     print(f"Sample {folder_name} induces error: {e}. Skip for now.")
         #     continue
+
+        postprocess_results(output_path, args.do_eval)
 
 def evaluation(sample):
     metrics = {}
@@ -104,7 +108,7 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", "-i", type=str, help="dataset directory")
     parser.add_argument("--file_list", "-l", type=str, default=None, help="list (.txt) of all the data to process")
     parser.add_argument("--output_dir", "-o", type=str, help="output directory")
-    parser.add_argument("--eval_only", "-e", action="store_true", help="only do evaluation")
+    parser.add_argument("--do_eval", "-e", action="store_true", help="do evaluation")
     parser.add_argument("--rewrite", "-r", action="store_true", help="rewrite the outputs even if they exist")
     parser.add_argument("--start", type=int, default=0, help="start index of the dataset")
     parser.add_argument("--end", type=int, default=10**9, help="end index of the dataset")

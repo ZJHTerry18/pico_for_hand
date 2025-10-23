@@ -87,7 +87,7 @@ class Phase_2_Optimizer(nn.Module):
 
     def calculate_silhouette_loss_iou(self, upd_obj_vertices, distance_penalty=0):
         current_mask = self.renderer.render(
-            upd_obj_vertices #+ self.hum_centroid_offset    # we do not move hand to centroid when loading, so no need to translate it back
+            upd_obj_vertices + self.hum_centroid_offset    # we move hand to centroid when loading, so need to translate it back
         )
         intersection = torch.sum(current_mask * self.obj_mask)
         union = torch.sum((current_mask + self.obj_mask).clamp(0, 1))

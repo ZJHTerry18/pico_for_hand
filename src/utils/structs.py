@@ -27,8 +27,8 @@ class HandParams:
         # self.mask = torch.tensor(self.mask).cuda()
     
     def to_cpu(self):
-        self.vertices = self.vertices.detach().cpu().numpy().astype(int)
-        self.faces = self.faces.detach().cpu().numpy().astype(int)
+        self.vertices = self.vertices.detach().cpu().numpy()
+        self.faces = self.faces.detach().cpu().numpy()
         self.centroid_offset = self.centroid_offset.detach().cpu().numpy()
     
     def __str__(self):
@@ -47,23 +47,31 @@ class ObjectParams:
         self,
         vertices,
         faces,
+        rotation_offset,
+        centroid_offset,
         mask,
         scale,
     ):
         self.vertices = vertices
         self.faces = faces
+        self.rotation_offset = rotation_offset
+        self.centroid_offset = centroid_offset
         self.mask = mask
         self.scale = scale
 
     def to_cuda(self):
         self.vertices = torch.from_numpy(self.vertices).float().cuda()
         self.faces = torch.from_numpy(self.faces).float().cuda()
+        self.rotation_offset = torch.from_numpy(self.rotation_offset).float().cuda()
+        self.centroid_offset = torch.from_numpy(self.centroid_offset).float().cuda()
         self.mask = torch.tensor(self.mask).cuda() if self.mask is not None else None
         self.scale = torch.tensor(self.scale).float().cuda()
     
     def to_cpu(self):
-        self.vertices = self.vertices.detach().cpu().numpy().astype(int)
-        self.faces = self.faces.detach().cpu().numpy().astype(int)
+        self.vertices = self.vertices.detach().cpu().numpy()
+        self.faces = self.faces.detach().cpu().numpy()
+        self.rotation_offset = self.rotation_offset.detach().cpu().numpy()
+        self.centroid_offset = self.centroid_offset.detach().cpu().numpy()
         self.mask = self.mask.detach().cpu() if self.mask is not None else None
         self.scale = self.scale.detach().cpu().numpy()
 
@@ -71,5 +79,7 @@ class ObjectParams:
         return ('ObjectParams:\n'
             f'  - Vertices: {self.vertices.shape}, {type(self.vertices)} {self.vertices[:5]}\n'
             f'  - Faces: {self.faces.shape}, {type(self.faces)} {self.faces[:5]}\n'
+            f'  - Rotation offset: {type(self.rotation_offset)} {self.rotation_offset}\n'
+            f'  - Centroid offset: {type(self.centroid_offset)} {self.centroid_offset}\n'
             # f'  - Mask: {self.mask.shape}, {type(self.mask)} {self.mask[:5]}\n'
             f'  - Scale: {self.scale}')

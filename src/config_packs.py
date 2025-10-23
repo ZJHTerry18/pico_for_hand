@@ -67,6 +67,21 @@ arctic_config = ConfigPack(
     lr_rotation_phase_2=0.01,
     lr_translation_phase_2=0.005,
     lr_scaling_phase_2=0.005,
+    skip_phase_2=False,
+    nr_phase_3_steps=1000,
+    skip_phase_3=True,
+    loss_weights=default_loss_weights,
+)
+
+epic_config = ConfigPack(
+    nr_phase_1_steps=250,
+    lr_rotation_phase_1=0.04,
+    lr_translation_phase_1=0.02,
+    skip_phase_1=False,
+    nr_phase_2_steps=500,
+    lr_rotation_phase_2=0.01,
+    lr_translation_phase_2=0.005,
+    lr_scaling_phase_2=0.005,
     skip_phase_2=True,
     nr_phase_3_steps=1000,
     skip_phase_3=True,
@@ -76,4 +91,5 @@ arctic_config = ConfigPack(
 CONFIGS_FACTORY = {
     "default": default_config,
     "arctic": arctic_config,
+    "epic": epic_config,
 }
