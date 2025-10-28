@@ -51,7 +51,7 @@ def eval_mrrpe(v3d_h_gt: torch.Tensor, v3d_h_pred: torch.Tensor,
     rel_vec_gt = root_h_gt - root_o_gt
     rel_vec_pred = root_h_pred - root_o_pred
     mrrpe = ((rel_vec_pred - rel_vec_gt) ** 2).sum().sqrt().item()
-    metrics_dict = {"mrrpe": mrrpe}
+    metrics_dict = {"mrrpe": mrrpe * 1000}
     return metrics_dict
 
 

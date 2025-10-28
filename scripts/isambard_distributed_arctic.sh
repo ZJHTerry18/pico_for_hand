@@ -1,21 +1,22 @@
 #!/bin/bash
 #SBATCH --job-name=parallel_pico_arctic
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --gpus-per-node=1
-#SBATCH --time=05:00:00
+#SBATCH --nodes=32
+#SBATCH --ntasks=128
+#SBATCH --gpus-per-node=4
+#SBATCH --time=12:00:00
 #SBATCH --output=logs/arctic-%j.out
 #SBATCH --error=logs/arctic-%j.err
 #SBATCH --mail-user=jiahe.zhao@bristol.ac.uk
 #SBATCH --mail-type=ALL
 
-source ~/.bashrc
+cd /projects/s5a/jiahezhao/codes/pico_for_hand
+source /projects/s5a/jiahezhao/miniconda3/etc/profile.d/conda.sh
 conda activate pico
 mkdir -p logs
 
-TOTAL_SAMPLES=138
-INPUT_DIR="/projects/s5a/jiahezhao/codes/JointTransformer/outputs/render_out_v2.2_test"
-OUTPUT_DIR="/projects/s5a/jiahezhao/codes/JointTransformer/outputs/pico_out_v2.2-test_phase2_3metric_isambard"
+TOTAL_SAMPLES=37100
+INPUT_DIR="/projects/s5a/jiahezhao/codes/JointTransformer/outputs/render_out_v2.2"
+OUTPUT_DIR="/projects/s5a/jiahezhao/codes/JointTransformer/outputs/pico_out_v2.2_phase2_3metric_isambard"
 
 N_TASKS=$SLURM_NTASKS
 if [ -z "$N_TASKS" ]; then
@@ -40,7 +41,7 @@ srun bash -c "
 
     python batch_run_generic.py \
         -d arctic \
-        -i $INPUT_DIR -o $OUTPUT_DIR -r --do_eval \
+        -i $INPUT_DIR -o $OUTPUT_DIR --do_eval \
         --start \$START_IDX --end \$END_IDX 
 "
 

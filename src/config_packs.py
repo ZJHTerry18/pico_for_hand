@@ -9,6 +9,17 @@ default_loss_weights = {
     'lw_silhouette_hand': 0.1,
 }
 
+epic_loss_weights = {
+    'lw_contact': 8.0,
+    'lw_silhouette': 0.,
+    'lw_silhouette_distance': 0.,
+    'lw_scale': 0,
+    'lw_collision_p2': 1.0,
+    'lw_collision_p3': 50,
+    'lw_pose_reg': 0.05,
+    'lw_silhouette_hand': 0.1,
+}
+
 class ConfigPack:
     def __init__(
         self,
@@ -82,10 +93,10 @@ epic_config = ConfigPack(
     lr_rotation_phase_2=0.01,
     lr_translation_phase_2=0.005,
     lr_scaling_phase_2=0.005,
-    skip_phase_2=True,
+    skip_phase_2=False,
     nr_phase_3_steps=1000,
     skip_phase_3=True,
-    loss_weights=default_loss_weights,
+    loss_weights=epic_loss_weights,
 )
 
 CONFIGS_FACTORY = {

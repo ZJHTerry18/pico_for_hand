@@ -132,6 +132,32 @@ def postprocess_results(
     
     return
 
+def exist_results(output_path, do_eval, cfg):
+    suffix = "" if do_eval else "_noeval"
+    phases = []
+    if not cfg.skip_phase_1:
+        phases.append(1)
+    if not cfg.skip_phase_2:
+        phases.append(2)
+    if not cfg.skip_phase_3:
+        phases.append(3)
+
+    check_file_templates = [
+        "pred_hand_mesh_phase{}.obj",
+        "pred_obj_mesh_phase{}.obj",
+        "pred_hoi_mesh_phase{}.obj",
+        f"pred_phase{{}}{suffix}.json",
+        "transform_phase{}.json"
+    ]
+
+    for ph in phases:
+        for cf in check_file_templates:
+            check_path = os.path.join(output_path, cf.format(ph))
+            if not os.path.exists(check_path):
+                return False
+    return True
+
+
 def visualize_human_object_results(img, img_filename, mesh, hand_params, output_folder):
     ##### save the images
     frontal = visualize_frontal_overlaid(img, mesh, hand_params.centroid_offset, hand_params.bbox)

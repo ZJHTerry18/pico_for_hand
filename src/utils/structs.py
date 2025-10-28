@@ -8,7 +8,7 @@ class HandParams:
         centroid_offset,
         left_right,
         # bbox,
-        # mask,
+        mask,
         # smplx_params,
     ):
         self.vertices = vertices
@@ -16,7 +16,7 @@ class HandParams:
         self.centroid_offset = centroid_offset
         self.left_right = left_right
         # self.bbox = bbox
-        # self.mask = mask
+        self.mask = mask
         # self.smplx_params = smplx_params
 
     def to_cuda(self):
@@ -24,12 +24,13 @@ class HandParams:
         self.faces = torch.from_numpy(self.faces).float().cuda()
         self.centroid_offset = torch.from_numpy(self.centroid_offset).float().cuda()
         # self.bbox = torch.from_numpy(self.bbox).float().cuda()
-        # self.mask = torch.tensor(self.mask).cuda()
+        self.mask = torch.tensor(self.mask).cuda() if self.mask is not None else None
     
     def to_cpu(self):
         self.vertices = self.vertices.detach().cpu().numpy()
         self.faces = self.faces.detach().cpu().numpy()
         self.centroid_offset = self.centroid_offset.detach().cpu().numpy()
+        self.mask = self.mask.detach().cpu().numpy() if self.mask is not None else None
     
     def __str__(self):
         return ('HumanParams:\n'
@@ -38,7 +39,7 @@ class HandParams:
             f'  - Centroid offset: {type(self.centroid_offset)} {self.centroid_offset}\n'
             f'  - Left/Right: {type(self.left_right)} {self.left_right}\n'
             # f'  - Bbox: {type(self.bbox)} {self.bbox}\n'
-            # f'  - Mask: {self.mask.shape}')
+            # f'  - Mask: {self.mask.shape}'
         )
 
 

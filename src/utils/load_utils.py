@@ -4,6 +4,7 @@ import trimesh
 import os
 import torch
 import trimesh.transformations as tr
+from typing import Tuple
 
 from src.constants import IMAGE_SIZE, SMPLX_FACES_PATH
 from src.utils.structs import HandParams, ObjectParams
@@ -24,9 +25,22 @@ def load_image(image_path: str) -> np.ndarray:
     return image
 
 
-def load_hand_params(hand_inference_file: str, hand_detection_file: str = None, imgsize: np.ndarray = None, center: bool=False) -> HandParams:
+def load_hand_params(hand_inference_file: str, lr_flag: str, hand_detection_file: str = None, imgsize: np.ndarray = None, 
+                     center: bool=False, load_hand_mask: bool=False, cam_intrinsic=None) -> HandParams:
     hand_mesh = trimesh.load(hand_inference_file)
-    left_right = "left" if "left" in hand_inference_file else "right"
+
+    # check the hand projection right?
+    if load_hand_mask:
+        if hand_detection_file:
+            mask = cv2.imread(hand_detection_file) / 255.0
+            mask = cv2.resize(mask, (imgsize[1], imgsize[0]))[:, :, 0]
+        else:
+            faces = torch.from_numpy(hand_mesh.faces).float().cuda()
+            vertices = torch.from_numpy(hand_mesh.vertices).float().cuda()
+            renderer = MySoftSilhouetteRenderer(img_shape=imgsize, faces=faces, cam_intrinsic=cam_intrinsic)
+            mask = renderer.render(vertices).cpu().numpy()
+    else:
+        mask = None
 
     ## For now, directly use the posed hand vertices instead of MANO
     if center:
@@ -57,9 +71,9 @@ def load_hand_params(hand_inference_file: str, hand_detection_file: str = None, 
         vertices = hand_mesh.vertices,
         faces = hand_mesh.faces,
         centroid_offset = centroid_offset.copy(),
-        left_right=left_right,
+        left_right=lr_flag,
         # bbox = human_npz['bbox'][0],
-        # mask = mask,
+        mask = mask,
         # smplx_params = smplx_params
     )
 
@@ -68,16 +82,20 @@ def load_hand_params(hand_inference_file: str, hand_detection_file: str = None, 
     
 
 def load_object_params(object_mesh_file: str, object_detection_file: str = None, imgsize: np.ndarray = None,
-                       trans_mat=None, load_obj_mask=False, cam_intrinsic=None) -> ObjectParams:
+                       trans_mat=None, load_obj_mask=False, cam_intrinsic=None) -> Tuple[ObjectParams, torch.Tensor]:
     obj_mesh = trimesh.load(object_mesh_file)
     gt_vertices = torch.from_numpy(obj_mesh.vertices).float()
 
     # render object mask
     if load_obj_mask:
-        faces = torch.from_numpy(obj_mesh.faces).float().cuda()
-        vertices = torch.from_numpy(obj_mesh.vertices).float().cuda()
-        renderer = MySoftSilhouetteRenderer(img_shape=imgsize, faces=faces, cam_intrinsic=cam_intrinsic)
-        mask = renderer.render(vertices).cpu().numpy()
+        if object_detection_file:
+            mask = cv2.imread(object_detection_file) / 255.0
+            mask = cv2.resize(mask, (imgsize[1], imgsize[0]))[:, :, 0]
+        else:
+            faces = torch.from_numpy(obj_mesh.faces).float().cuda()
+            vertices = torch.from_numpy(obj_mesh.vertices).float().cuda()
+            renderer = MySoftSilhouetteRenderer(img_shape=imgsize, faces=faces, cam_intrinsic=cam_intrinsic)
+            mask = renderer.render(vertices).cpu().numpy()    
     else:
         mask = None
 
@@ -102,10 +120,10 @@ def load_object_params(object_mesh_file: str, object_detection_file: str = None,
     # mask = np.array(detection['mask']).astype(float)
     # mask = cv2.resize(mask, (imgsize[1], imgsize[0]))
 
-    # check the initial pose is it aligned to canonical?
-    os.makedirs('temp', exist_ok=True)
-    tmp_mesh_path = f"./temp/{'_'.join(object_mesh_file.split('/')[-5:-1])}.obj"
-    obj_mesh.export(tmp_mesh_path)
+    # # check the initial pose is it aligned to canonical?
+    # os.makedirs('temp', exist_ok=True)
+    # tmp_mesh_path = f"./temp/{'_'.join(object_mesh_file.split('/')[-5:-1])}.obj"
+    # obj_mesh.export(tmp_mesh_path)
 
     object_params = ObjectParams(
         vertices = obj_mesh.vertices,

@@ -39,15 +39,15 @@ class Phase_2_Optimizer(nn.Module):
         # self.register_buffer('hum_bbox', hand_params.bbox)
         self.register_buffer('obj_vertices', object_params.vertices)
         self.register_buffer('obj_faces', object_params.faces)
-        self.register_buffer('obj_mask', object_params.mask.float())
+        self.register_buffer('obj_mask', object_params.mask.float() if object_params.mask is not None else None)
         self.register_buffer('obj_init_scaling', torch.tensor([1.0], device='cuda'))
         self.contact_transfer_map = contact_mapping
         self.render_size = render_size
 
         self.renderer = MySoftSilhouetteRenderer(render_size, object_params.faces, cam_intrinsic)
 
-        dist_mat = ndimage.distance_transform_edt(1 - self.obj_mask.cpu().numpy())
-        self.register_buffer('dist_mat', torch.tensor(dist_mat, device='cuda'))
+        # dist_mat = ndimage.distance_transform_edt(1 - self.obj_mask.cpu().numpy())
+        # self.register_buffer('dist_mat', torch.tensor(dist_mat, device='cuda'))
 
         # SDF collision loss setup
         self.sdf_loss = SDFLoss(hand_params.faces, robustifier=1.0)
@@ -105,7 +105,7 @@ class Phase_2_Optimizer(nn.Module):
         loss_dict = {}
         if loss_weights["lw_contact"] > 0:
             loss_dict.update(self.calculate_contact_loss(upd_obj_vertices))
-        if loss_weights["lw_silhouette"] > 0:
+        if loss_weights["lw_silhouette"] > 0 and self.obj_mask is not None: # for samples without object masks, we cannot calculate mask loss
             loss_dict.update(self.calculate_silhouette_loss_iou(upd_obj_vertices, distance_penalty=loss_weights["lw_silhouette_distance"]))
         if loss_weights["lw_scale"] > 0:
             loss_dict.update(self.calculate_scale_loss())

@@ -73,6 +73,9 @@ class EpicDataset(Dataset):
         hand_mesh_path = osp.join(folder_path, f"{lr_flag}_hand_posed_mesh.ply")
         obj_mesh_path = osp.join(folder_path, "object.obj")
         contact_path = osp.join(folder_path, "corresponding_contacts.json")
+        cam_intrinsic_path = osp.join(folder_path, "wilor_output.pkl")
+        hand_mask_path = osp.join(folder_path, "hand_mask.png")
+        obj_mask_path = osp.join(folder_path, "object_mask.png")
         assert self._check_file(image_path)
         assert self._check_file(hand_mesh_path)
         assert self._check_file(obj_mesh_path), f"{obj_mesh_path} does not exist"
@@ -80,22 +83,44 @@ class EpicDataset(Dataset):
 
         # get camera intrinsic matrix
         cam_intrinsic = None
-        render_img_size = [1000, 1000]
+        render_img_size = [456, 256]
         # TODO
+        if not (self.cfg.skip_phase_2 and self.cfg.skip_phase_3):
+            assert self._check_file(cam_intrinsic_path), f"{cam_intrinsic_path} does not exist"
+            cam_dat = np.load(cam_intrinsic_path, allow_pickle=True)[lr_flag]
+            fl = cam_dat['focal_length'].item()
+            cx, cy = cam_dat['img_size'][0], cam_dat['img_size'][1]
+            render_img_size = [int(cy * 2), int(cx * 2)]
+            cam_intrinsic = torch.FloatTensor([[fl, 0, cx], [0, fl, cy], [0, 0, 1]])
 
         # TODO: get objectmeta
         meta_info = dict()
 
         # load image, hand parameters, object parameters, contact
         img = load_image(image_path)
-        hand_params = load_hand_params(hand_mesh_path, center=True)
-        ## TODO: object mask
+        load_hand_mask = (not self.cfg.skip_phase_2) and (self._check_file(hand_mask_path))
+        load_obj_mask = (not self.cfg.skip_phase_2) and (self._check_file(obj_mask_path))
+        hand_params = load_hand_params(
+            hand_mesh_path, hand_detection_file=hand_mask_path, imgsize=render_img_size, 
+            lr_flag=lr_flag, center=True, load_hand_mask=load_hand_mask, cam_intrinsic=cam_intrinsic,
+        )
         object_params, _ = load_object_params(
-            obj_mesh_path, imgsize=render_img_size, trans_mat=None, 
-            load_obj_mask=(not self.cfg.skip_phase_2), cam_intrinsic=cam_intrinsic
+            obj_mesh_path, object_detection_file=obj_mask_path, imgsize=render_img_size, 
+            trans_mat=None, load_obj_mask=load_obj_mask, cam_intrinsic=cam_intrinsic
         )
         contact_mapping = load_contact_mapping(contact_path, convert_to_smplx=False)
         sparse_dense_mapping = load_sparse_dense_mapping("./sparse_dense_mapping.json")
+
+        # ## TEST: visualize the rendered masks
+        # obj_mask = object_params.mask.cpu().numpy()
+        # obj_mask = (obj_mask * 255).astype(np.uint8)
+        # hand_mask = hand_params.mask.cpu().numpy()
+        # hand_mask = (hand_mask * 255).astype(np.uint8)
+        # print(obj_mask.shape, hand_mask.shape)
+        # import cv2
+        # os.makedirs("temp", exist_ok=True)
+        # cv2.imwrite(f"temp/{folder_name}_obj.png", obj_mask)
+        # cv2.imwrite(f"temp/{folder_name}_hand.png", hand_mask)
 
         sample = dict()
         sample["img"] = img
@@ -126,6 +151,7 @@ class ArcticDataset(Dataset):
 
     def _prepare_data_list(self, start_idx, end_idx):
         folders = sorted(glob(osp.join(self.data_dir, "*/*/*/*")))
+        folders = [f for f in folders if self._check_data(f)]
 
         if self.file_list is not None:
             with open(self.file_list, "r") as f:
@@ -139,7 +165,11 @@ class ArcticDataset(Dataset):
     
     def _check_file(self, file, isdir=False):
         return osp.exists(file)
-        
+
+    def _check_data(self, folder_path):
+        lr_path = osp.join(folder_path, "left_right.txt")
+        return self._check_file(lr_path)
+
     def __len__(self,):
         return len(self.dataset_samples)
 
@@ -196,7 +226,7 @@ class ArcticDataset(Dataset):
 
         # load image, hand parameters, object parameters, contact
         img = load_image(image_path)
-        hand_params = load_hand_params(hand_mesh_path)
+        hand_params = load_hand_params(hand_mesh_path, lr_flag)
         object_params, gt_obj_vertices = load_object_params(
             obj_mesh_path, imgsize=render_img_size, trans_mat=init_mat, 
             load_obj_mask=(not self.cfg.skip_phase_2), cam_intrinsic=cam_intrinsic
