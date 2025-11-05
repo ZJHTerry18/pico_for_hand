@@ -86,8 +86,12 @@ def optimize_phase1_contact(
         loss.backward()
         # print(model.rotation.grad, model.translation.grad)
         optimizer.step()
-        loop.set_description(f'loss: {loss.item():.3g}')
-        loop.update()
+        # loop.set_description(f'loss: {loss.item():.3g}')
+        # loop.update()
+
+        if i % 50 == 0:
+            loss_str = f"loss_contact: {loss.item():.3g}"
+            print(loss_str)
 
     object_parameters = {}
     object_parameters["rotation"] = rotation_matrix_to_angle_axis(rot6d_to_matrix(model.rotation).detach())

@@ -73,7 +73,7 @@ class EpicDataset(Dataset):
         hand_mesh_path = osp.join(folder_path, f"{lr_flag}_hand_posed_mesh.ply")
         obj_mesh_path = osp.join(folder_path, "object.obj")
         contact_path = osp.join(folder_path, "corresponding_contacts.json")
-        cam_intrinsic_path = osp.join(folder_path, "wilor_output.pkl")
+        hand_npz_path = osp.join(folder_path, "wilor_output.pkl")
         hand_mask_path = osp.join(folder_path, "hand_mask.png")
         obj_mask_path = osp.join(folder_path, "object_mask.png")
         assert self._check_file(image_path)
@@ -86,10 +86,10 @@ class EpicDataset(Dataset):
         render_img_size = [456, 256]
         # TODO
         if not (self.cfg.skip_phase_2 and self.cfg.skip_phase_3):
-            assert self._check_file(cam_intrinsic_path), f"{cam_intrinsic_path} does not exist"
-            cam_dat = np.load(cam_intrinsic_path, allow_pickle=True)[lr_flag]
-            fl = cam_dat['focal_length'].item()
-            cx, cy = cam_dat['img_size'][0], cam_dat['img_size'][1]
+            assert self._check_file(hand_npz_path), f"{hand_npz_path} does not exist"
+            hand_npz = np.load(hand_npz_path, allow_pickle=True)[lr_flag]
+            fl = hand_npz['focal_length'].item()
+            cx, cy = hand_npz['img_size'][0], hand_npz['img_size'][1]
             render_img_size = [int(cy * 2), int(cx * 2)]
             cam_intrinsic = torch.FloatTensor([[fl, 0, cx], [0, fl, cy], [0, 0, 1]])
 
@@ -98,11 +98,13 @@ class EpicDataset(Dataset):
 
         # load image, hand parameters, object parameters, contact
         img = load_image(image_path)
-        load_hand_mask = (not self.cfg.skip_phase_2) and (self._check_file(hand_mask_path))
+        load_hand_mask = (not self.cfg.skip_phase_3) and (self._check_file(hand_mask_path))
         load_obj_mask = (not self.cfg.skip_phase_2) and (self._check_file(obj_mask_path))
+        load_mano = (not self.cfg.skip_phase_3)
         hand_params = load_hand_params(
             hand_mesh_path, hand_detection_file=hand_mask_path, imgsize=render_img_size, 
-            lr_flag=lr_flag, center=True, load_hand_mask=load_hand_mask, cam_intrinsic=cam_intrinsic,
+            lr_flag=lr_flag, center=True, load_hand_mask=load_hand_mask, load_mano=load_mano,
+            cam_intrinsic=cam_intrinsic, hand_npz=hand_npz,
         )
         object_params, _ = load_object_params(
             obj_mesh_path, object_detection_file=obj_mask_path, imgsize=render_img_size, 

@@ -168,8 +168,8 @@ def optimize_phase2_image(
         loss = sum(loss_dict_weighted.values())
         loss.backward() # remove retain_graph=True for memory reasons
         optimizer.step()
-        loop.set_description(f'loss: {loss.item():.3g}')
-        loop.update()
+        # loop.set_description(f'loss: {loss.item():.3g}')
+        # loop.update()
 
         if i % 50 == 0:
             loss_str = " | ".join([f"{k}: {loss_dict_weighted[k].item():.3g}" for k in loss_dict_weighted])

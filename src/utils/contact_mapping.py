@@ -121,13 +121,16 @@ def interpret_contact_points(contact_map, hand_vertices, object_vertices, obj_me
     return hand_points, object_points
 
 
-def calculate_hand_points(transformed_vertices, contact_data):
+def calculate_hand_points(transformed_vertices, contact_data, left_right=None, sparse_dense_map=None):
     hand_points = []
     for shapekey in contact_data:
         if shapekey.startswith('humanShape'):  # Processing hand mesh points
             for point in contact_data[shapekey]:
                 if point.startswith('v'):  # Single vertex
                     idx = int(point.split()[1])
+                    # Because our hand mesh is sparse but the saved contact vertices are dense, we need to map the index from dense back to sparse
+                    if sparse_dense_map is not None:
+                        idx = sparse_dense_map[left_right]["dense2sparse"][idx]
                     hand_points.append(transformed_vertices[idx])
     # Stack the list of tensors into a single tensor
     hand_points_tensor = torch.stack(hand_points)

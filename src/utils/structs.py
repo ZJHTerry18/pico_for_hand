@@ -9,7 +9,7 @@ class HandParams:
         left_right,
         # bbox,
         mask,
-        # smplx_params,
+        mano_params,
     ):
         self.vertices = vertices
         self.faces = faces
@@ -17,7 +17,7 @@ class HandParams:
         self.left_right = left_right
         # self.bbox = bbox
         self.mask = mask
-        # self.smplx_params = smplx_params
+        self.mano_params = mano_params
 
     def to_cuda(self):
         self.vertices = torch.from_numpy(self.vertices).float().cuda()

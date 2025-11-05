@@ -13,7 +13,7 @@ from src.utils.save_results import save_phase_results, postprocess_results, exis
 from src.config_packs import default_config, default_loss_weights
 from src.model.phase1_contact import optimize_phase1_contact
 from src.model.phase2_image import optimize_phase2_image
-# from src.phase3_human import optimize_phase3_human
+from src.model.phase3_hand import optimize_phase3_hand
 from src.evaluation.eval_modules import eval_v2v_success, eval_contact_dev, eval_mrrpe
 
 def main(dataset, args, cfg = None, loss_weights = None):
@@ -45,29 +45,28 @@ def main(dataset, args, cfg = None, loss_weights = None):
                 if args.do_eval:
                     sample["metrics"]["phase1"] = evaluation(sample)
                 # save results
-                save_phase_results(folder_name, output_path, sample, p1_object_params, phase=1, do_eval=args.do_eval)
+                save_phase_results(folder_name, output_path, sample, object_phase_params=p1_object_params, phase=1, do_eval=args.do_eval)
 
 
             if not cfg.skip_phase_2:
                 p2_object_params = optimize_phase2_image(**kwargs)
                 sample["object_params"].vertices = p2_object_params['vertices']
+                torch.cuda.empty_cache()
                 # evaluate stage 2
                 if args.do_eval:
                     sample["metrics"]["phase2"] = evaluation(sample)
                 # save results
-                save_phase_results(folder_name, output_path, sample, p2_object_params, phase=2, do_eval=args.do_eval)
-
-                torch.cuda.empty_cache()            
+                save_phase_results(folder_name, output_path, sample, object_phase_params=p2_object_params, phase=2, do_eval=args.do_eval)           
 
 
-            # if not cfg.skip_phase_3:
-            #     p3_hand_params = optimize_phase3_human(hand_params, object_params, contact_mapping, img, loss_weights, cfg.nr_phase_3_steps)
-            #     hand_params.vertices = p3_hand_params['vertices']
-            #     save_phase_results(
-            #         img_filename, output_folder, img,
-            #         hand_params, object_params,
-            #         phase = 3,
-            #     )
+            if not cfg.skip_phase_3:
+                p3_hand_params = optimize_phase3_hand(**kwargs)
+                sample["hand_params"].vertices = p3_hand_params['vertices']
+                torch.cuda.empty_cache()
+                # evaluate stage 3
+                if args.do_eval:
+                    sample["metrics"]["phase3"] = evaluation(sample)
+                save_phase_results(folder_name, output_path, sample, hand_phase_params=p3_hand_params, phase=3, do_eval=args.do_eval)            
 
             postprocess_results(output_path, args.do_eval)
         
@@ -81,29 +80,28 @@ def main(dataset, args, cfg = None, loss_weights = None):
                     if args.do_eval:
                         sample["metrics"]["phase1"] = evaluation(sample)
                     # save results
-                    save_phase_results(folder_name, output_path, sample, p1_object_params, phase=1, do_eval=args.do_eval)
+                    save_phase_results(folder_name, output_path, sample, object_phase_params=p1_object_params, phase=1, do_eval=args.do_eval)
 
 
                 if not cfg.skip_phase_2:
                     p2_object_params = optimize_phase2_image(**kwargs)
                     sample["object_params"].vertices = p2_object_params['vertices']
+                    torch.cuda.empty_cache()
                     # evaluate stage 2
                     if args.do_eval:
                         sample["metrics"]["phase2"] = evaluation(sample)
                     # save results
-                    save_phase_results(folder_name, output_path, sample, p2_object_params, phase=2, do_eval=args.do_eval)
-
-                    torch.cuda.empty_cache()            
+                    save_phase_results(folder_name, output_path, sample, object_phase_params=p2_object_params, phase=2, do_eval=args.do_eval)            
 
 
-                # if not cfg.skip_phase_3:
-                #     p3_hand_params = optimize_phase3_human(hand_params, object_params, contact_mapping, img, loss_weights, cfg.nr_phase_3_steps)
-                #     hand_params.vertices = p3_hand_params['vertices']
-                #     save_phase_results(
-                #         img_filename, output_folder, img,
-                #         hand_params, object_params,
-                #         phase = 3,
-                #     )
+                if not cfg.skip_phase_3:
+                    p3_hand_params = optimize_phase3_hand(**kwargs)
+                    sample["hand_params"].vertices = p3_hand_params['vertices']
+                    torch.cuda.empty_cache()
+                    # evaluate stage 3
+                    if args.do_eval:
+                        sample["metrics"]["phase3"] = evaluation(sample)
+                    save_phase_results(folder_name, output_path, sample, hand_phase_params=p3_hand_params, phase=3, do_eval=args.do_eval)          
 
                 postprocess_results(output_path, args.do_eval)
                 

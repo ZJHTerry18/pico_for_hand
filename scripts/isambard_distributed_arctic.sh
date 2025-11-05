@@ -3,7 +3,7 @@
 #SBATCH --nodes=32
 #SBATCH --ntasks=128
 #SBATCH --gpus-per-node=4
-#SBATCH --time=12:00:00
+#SBATCH --time=05:00:00
 #SBATCH --output=logs/arctic-%j.out
 #SBATCH --error=logs/arctic-%j.err
 #SBATCH --mail-user=jiahe.zhao@bristol.ac.uk

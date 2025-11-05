@@ -4,6 +4,7 @@ import trimesh
 import os
 import torch
 import trimesh.transformations as tr
+from scipy.spatial.transform import Rotation as R
 from typing import Tuple
 
 from src.constants import IMAGE_SIZE, SMPLX_FACES_PATH
@@ -26,14 +27,23 @@ def load_image(image_path: str) -> np.ndarray:
 
 
 def load_hand_params(hand_inference_file: str, lr_flag: str, hand_detection_file: str = None, imgsize: np.ndarray = None, 
-                     center: bool=False, load_hand_mask: bool=False, cam_intrinsic=None) -> HandParams:
+                     center: bool=False, load_hand_mask: bool=False, load_mano: bool=False,
+                     cam_intrinsic=None, hand_npz=None) -> HandParams:
     hand_mesh = trimesh.load(hand_inference_file)
 
-    # check the hand projection right?
+    # load hand mask
     if load_hand_mask:
         if hand_detection_file:
             mask = cv2.imread(hand_detection_file) / 255.0
-            mask = cv2.resize(mask, (imgsize[1], imgsize[0]))[:, :, 0]
+            mask = cv2.resize(mask, (int(hand_npz["img_size"][0]), int(hand_npz["img_size"][1])))
+            # crop hand mask with the wilor bbox, to exclude arms
+            hcx, hcy = hand_npz["box_center"]
+            hl = hand_npz["box_size"] * 0.5
+            x_min, y_min = max(0, int(hcx - hl * 0.5)), max(0, int(hcy - hl * 0.5))
+            x_max, y_max = min(mask.shape[1], int(hcx + hl * 0.5)), min(mask.shape[0], int(hcy + hl * 0.5))
+            new_mask = np.zeros_like(mask)
+            new_mask[y_min:y_max, x_min:x_max, :] = mask[y_min:y_max, x_min:x_max, :]
+            mask = cv2.resize(new_mask, (imgsize[1], imgsize[0]))[:, :, 0]
         else:
             faces = torch.from_numpy(hand_mesh.faces).float().cuda()
             vertices = torch.from_numpy(hand_mesh.vertices).float().cuda()
@@ -41,40 +51,32 @@ def load_hand_params(hand_inference_file: str, lr_flag: str, hand_detection_file
             mask = renderer.render(vertices).cpu().numpy()
     else:
         mask = None
-
-    ## For now, directly use the posed hand vertices instead of MANO
+    
     if center:
         centroid_offset = hand_mesh.centroid
         hand_mesh.apply_translation(-centroid_offset)
     else:
         centroid_offset = np.array([0., 0., 0.])
 
-    ## For now, skip the part of parameterization and mask loading
-    # smplx_params = {
-    #     'betas': human_npz['hps_betas'],
-    #     'body_pose': human_npz['hps_body_pose'],
-    #     'global_orient': human_npz['hps_global_orient'],
-    #     'right_hand_pose': human_npz['hps_right_hand_pose'],
-    #     'left_hand_pose': human_npz['hps_left_hand_pose'],
-    #     'jaw_pose': human_npz['hps_jaw_pose'],
-    #     'leye_pose': human_npz['hps_leye_pose'],
-    #     'reye_pose': human_npz['hps_reye_pose'],
-    #     'expression': human_npz['hps_expression']
-    # }
-
-    # detection = np.load(human_detection_file)
-    # mask = np.array(detection['mask']).astype(float)
-    # # resize to image size
-    # mask = cv2.resize(mask, (imgsize[1], imgsize[0]))
+    # Load MANO hand parameters
+    mano_params = None
+    if load_mano:
+        mano_params = {
+            'betas': hand_npz['betas'],
+            'hand_pose': hand_npz['hand_params_original'],
+            'global_orient': R.from_matrix(hand_npz['rot']).as_rotvec(),
+            'transl': hand_npz['pred_cam_t'],
+            'is_rhand': (lr_flag == 'right'),
+        }
 
     hand_params = HandParams(
         vertices = hand_mesh.vertices,
         faces = hand_mesh.faces,
         centroid_offset = centroid_offset.copy(),
         left_right=lr_flag,
-        # bbox = human_npz['bbox'][0],
+        # bbox = hand_npz['bbox'][0],
         mask = mask,
-        # smplx_params = smplx_params
+        mano_params = mano_params
     )
 
     hand_params.to_cuda()

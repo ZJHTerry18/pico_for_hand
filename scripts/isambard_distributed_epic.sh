@@ -3,7 +3,7 @@
 #SBATCH --nodes=16
 #SBATCH --ntasks=64
 #SBATCH --gpus-per-node=4
-#SBATCH --time=05:00:00
+#SBATCH --time=10:00:00
 #SBATCH --output=logs/epic-%j.out
 #SBATCH --error=logs/epic-%j.err
 #SBATCH --mail-user=jiahe.zhao@bristol.ac.uk
@@ -15,7 +15,8 @@ mkdir -p logs
 
 TOTAL_SAMPLES=321
 INPUT_DIR="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/2025-09-08_gemini_pro"
-OUTPUT_DIR="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/2025-10-24_pico_stage2_321videos_wilorspace/2025-10-24_pico_stage2_321videos_wilorspace_con8.0_pen1.0"
+# OUTPUT_DIR="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/2025-10-24_pico_stage2_321videos_wilorspace/2025-10-24_pico_stage2_321videos_wilorspace_con8.0_sil0.03+0.03_pen0.01"
+OUTPUT_DIR="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/2025-10-31_pico_stage3_321videos_wilorspace/2025-10-31_pico_stage3_321videos_wilorspace_con8.0_sil0.03_pen0.01_reg0.05_newmask"
 # FILE_LIST="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/stage2_annotated_id_20251010.txt"
 FILE_LIST="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/best_dirs_annotations.json"
 
@@ -42,7 +43,7 @@ srun bash -c "
 
     python batch_run_generic.py \
         -d epic \
-        -i $INPUT_DIR -o $OUTPUT_DIR -l $FILE_LIST -r --debug \
+        -i $INPUT_DIR -o $OUTPUT_DIR -l $FILE_LIST --debug \
         --start \$START_IDX --end \$END_IDX 
 "
 

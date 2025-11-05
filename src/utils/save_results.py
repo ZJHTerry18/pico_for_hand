@@ -18,8 +18,9 @@ def save_phase_results(
     img_filename: str,
     output_folder: str,
     sample: dict,
-    object_phase_params: dict,
     phase: int,
+    hand_phase_params: dict=None,
+    object_phase_params: dict=None,
     do_eval: bool=False,
 ):
     # common folder, already exists if not first image
@@ -47,43 +48,44 @@ def save_phase_results(
     #     visualize_human_object_results(img, img_filename, mesh, hand_params, output_folder)
 
     # save the outputs of the phase
-    object_pose_data = {}
-    ## ini-pose: the transform from canonical pose to PICO initial pose
-    ini_rot = object_params.rotation_offset
-    ini_trans = object_params.centroid_offset
-    object_pose_data["init"] = {
-        "rot": ini_rot.tolist(),
-        "trans": ini_trans.tolist(),
-    }
-
-    ## pred-pose: the transfrom from PICO initial pose to PICO fitted pose (only for single phase)
-    object_preds = {}
-    object_preds["rot"] = (-object_phase_params["rotation"].squeeze()).tolist() # in PICO, rotation matrix is right-multiplied. But we want left-multiplied
-    object_preds["trans"] = object_phase_params["translation"].squeeze().tolist()
-    object_pose_data["pred"] = object_preds
-
-    ## post-pose: the transform from PICO initial hand coordinate to GT hand coordinate
-    object_pose_data["post"] = {
-        "rot": [0., 0., 0.],
-        "trans": centroid_offset.tolist()
-    }
-
-    if do_eval:
-        metrics = sample["metrics"][f"phase{phase}"]
-        out_path = os.path.join(output_folder, f'pred_phase{phase}.json')
-        object_pose_data["gt"] = sample["gt_obj_pose"]
-        save_data = {
-            "pose": object_pose_data,
-            "metrics": metrics
-        }
-    else:
-        out_path = os.path.join(output_folder, f'pred_phase{phase}_noeval.json')
-        save_data = {
-            "pose": object_pose_data,
+    if object_phase_params is not None:
+        object_pose_data = {}
+        ## ini-pose: the transform from canonical pose to PICO initial pose
+        ini_rot = object_params.rotation_offset
+        ini_trans = object_params.centroid_offset
+        object_pose_data["init"] = {
+            "rot": ini_rot.tolist(),
+            "trans": ini_trans.tolist(),
         }
 
-    with open(out_path, "w") as f:
-        json.dump(save_data, f, indent=4)
+        ## pred-pose: the transfrom from PICO initial pose to PICO fitted pose (only for single phase)
+        object_preds = {}
+        object_preds["rot"] = (-object_phase_params["rotation"].squeeze()).tolist() # in PICO, rotation matrix is right-multiplied. But we want left-multiplied
+        object_preds["trans"] = object_phase_params["translation"].squeeze().tolist()
+        object_pose_data["pred"] = object_preds
+
+        ## post-pose: the transform from PICO initial hand coordinate to GT hand coordinate
+        object_pose_data["post"] = {
+            "rot": [0., 0., 0.],
+            "trans": centroid_offset.tolist()
+        }
+
+        if do_eval:
+            metrics = sample["metrics"][f"phase{phase}"]
+            out_path = os.path.join(output_folder, f'pred_phase{phase}.json')
+            object_pose_data["gt"] = sample["gt_obj_pose"]
+            save_data = {
+                "pose": object_pose_data,
+                "metrics": metrics
+            }
+        else:
+            out_path = os.path.join(output_folder, f'pred_phase{phase}_noeval.json')
+            save_data = {
+                "pose": object_pose_data,
+            }
+
+        with open(out_path, "w") as f:
+            json.dump(save_data, f, indent=4)
 
     return
 
@@ -142,16 +144,26 @@ def exist_results(output_path, do_eval, cfg):
     if not cfg.skip_phase_3:
         phases.append(3)
 
-    check_file_templates = [
+    check_file_template_12 = [
         "pred_hand_mesh_phase{}.obj",
         "pred_obj_mesh_phase{}.obj",
         "pred_hoi_mesh_phase{}.obj",
         f"pred_phase{{}}{suffix}.json",
         "transform_phase{}.json"
     ]
+    check_file_template_3 = [
+        "pred_hand_mesh_phase{}.obj",
+        "pred_obj_mesh_phase{}.obj",
+        "pred_hoi_mesh_phase{}.obj",
+    ]
+    check_file_templates = {
+        1: check_file_template_12,
+        2: check_file_template_12,
+        3: check_file_template_3
+    }
 
     for ph in phases:
-        for cf in check_file_templates:
+        for cf in check_file_templates[ph]:
             check_path = os.path.join(output_path, cf.format(ph))
             if not os.path.exists(check_path):
                 return False
