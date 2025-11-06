@@ -30,6 +30,17 @@ def load_contact_mapping(contact_map_path: str, convert_to_smplx: bool = True) -
         contact_transfer_map.pop(key)
         print(f"removed {key} from contact_transfer_map")
 
+    # also remove key pairs where the object has 0 contact points
+    keys_to_remove = []
+    for key in contact_transfer_map:
+        if key.startswith('obj'):
+            if len(contact_transfer_map[key]) == 0:
+                keys_to_remove.append(key)
+    for key in keys_to_remove:
+        contact_transfer_map.pop(key)
+        contact_transfer_map.pop(key.replace('obj', 'human'))
+        # print(f"removed {key} from contact_transfer_map")
+
     # check if the same number of keys starting with 'human' and 'object' are present
     hand_keys = [x for x in contact_transfer_map if x.startswith('human')]
     object_keys = [x for x in contact_transfer_map if x.startswith('obj')]
