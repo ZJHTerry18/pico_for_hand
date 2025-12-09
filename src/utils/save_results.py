@@ -6,6 +6,7 @@ import torch
 from glob import glob
 from PIL import Image
 import copy
+import pickle
 
 from src.constants import COLOR_HUMAN_BLUE, COLOR_OBJECT_RED
 from src.utils.structs import HandParams, ObjectParams
@@ -46,8 +47,21 @@ def save_phase_results(
     # save rendered views
     # if phase == 3:
     #     visualize_human_object_results(img, img_filename, mesh, hand_params, output_folder)
+    
+    # save the hand pose and betas for phase 3
+    if hand_phase_params is not None:
+        hand_pose_data = {
+            "hand_pose_init": hand_phase_params["mano_pose_init"].cpu(),
+            "hand_pose": hand_phase_params["mano_pose_opt"].cpu(),
+            "betas": hand_phase_params["mano_betas"].cpu(),
+            "global_orient": hand_phase_params["global_orient"].cpu(),
+            "transl": hand_phase_params["transl"].cpu()
+        }
+        out_path = os.path.join(output_folder, f"pred_hand_pose_phase{phase}.pkl")
+        with open(out_path, 'wb') as f:
+            pickle.dump(hand_pose_data, f)
 
-    # save the outputs of the phase
+    # save the object pose for phase 1 or 2
     if object_phase_params is not None:
         object_pose_data = {}
         ## ini-pose: the transform from canonical pose to PICO initial pose

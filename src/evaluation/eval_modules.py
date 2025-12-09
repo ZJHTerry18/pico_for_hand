@@ -81,6 +81,7 @@ def eval_v2v_success(v3d_gt: torch.Tensor, v3d_pred: torch.Tensor, meta_info: di
     v3d_cam_pred_ra = v3d_pred - v3d_root_pred[None, :]
 
     v2v_ra = compute_v2v_dist_no_reduce(v3d_cam_gt_ra, v3d_cam_pred_ra)
+    mean_v2v_ra = v2v_ra.mean() * 1000
 
     diameter = meta_info["diameter"]
     alphas = [0.001, 0.003, 0.005, 0.01, 0.03, 0.05, 0.1]
@@ -92,4 +93,5 @@ def eval_v2v_success(v3d_gt: torch.Tensor, v3d_pred: torch.Tensor, meta_info: di
         # percentage
         metric_dict[f"success_rate/{alpha:.3f}"] = v2v_rate_ra
     metric_dict = {k: v * 100 for k, v in metric_dict.items()}
+    metric_dict["pose_error"] = mean_v2v_ra
     return metric_dict

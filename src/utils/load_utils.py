@@ -61,10 +61,13 @@ def load_hand_params(hand_inference_file: str, lr_flag: str, hand_detection_file
     # Load MANO hand parameters
     mano_params = None
     if load_mano:
+        global_orient = R.from_matrix(hand_npz['rot']).as_rotvec()
+        if lr_flag == "left":
+            global_orient[..., 1:] *= -1
         mano_params = {
             'betas': hand_npz['betas'],
             'hand_pose': hand_npz['hand_params_original'],
-            'global_orient': R.from_matrix(hand_npz['rot']).as_rotvec(),
+            'global_orient': global_orient,
             'transl': hand_npz['pred_cam_t'],
             'is_rhand': (lr_flag == 'right'),
         }

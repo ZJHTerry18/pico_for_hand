@@ -28,7 +28,7 @@ def load_contact_mapping(contact_map_path: str, convert_to_smplx: bool = True) -
                 keys_to_remove.append(key)
     for key in keys_to_remove:
         contact_transfer_map.pop(key)
-        print(f"removed {key} from contact_transfer_map")
+        # print(f"removed {key} from contact_transfer_map")
 
     # also remove key pairs where the object has 0 contact points
     keys_to_remove = []
@@ -51,10 +51,10 @@ def load_contact_mapping(contact_map_path: str, convert_to_smplx: bool = True) -
         contact_transfer_map = convert_contact_map_to_smplx(contact_transfer_map)
 
     # print the number of contact points for each object
-    print('contact_transfer_map processed:')
+    # print('contact_transfer_map processed:')
     for key in contact_transfer_map:
         if key.startswith('human'):
-            print(f"... {key.replace('human', '')}: h {len(contact_transfer_map[key])}, o {len(contact_transfer_map[key.replace('human', 'obj')])}")
+            # print(f"... {key.replace('human', '')}: h {len(contact_transfer_map[key])}, o {len(contact_transfer_map[key.replace('human', 'obj')])}")
             assert len(contact_transfer_map[key]) == len(contact_transfer_map[key.replace('human', 'obj')]), f"number of contact points for {key} and {key.replace('human', 'obj')} don't match"
 
     return contact_transfer_map

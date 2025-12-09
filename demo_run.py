@@ -4,11 +4,8 @@ import os.path as osp
 import argparse
 from tqdm import tqdm
 import glob
-import numpy as np
-import trimesh
 import copy
 import torch
-from collections import defaultdict
 
 from src.config_packs import CONFIGS_FACTORY
 from src.dataset.hand_dataset import DATASET_FACTORY
@@ -25,8 +22,13 @@ def main(dataset, args, cfg = None, loss_weights = None):
     if loss_weights is None:
         loss_weights = default_loss_weights
 
+
+    # TODO: add eval-only codes
+
     for i, data in enumerate(dataset):
         sample, folder_name = data
+        if not folder_name == "P11_104_16725_16786_right_pan_3949.mp4":
+            continue
         kwargs = {**sample, **vars(cfg)}
         output_path = osp.join(args.output_dir, folder_name)
 
@@ -109,62 +111,6 @@ def main(dataset, args, cfg = None, loss_weights = None):
                 print(f"Sample {folder_name} induces error: {e}. Skip for now.")
                 continue
 
-def main_evalonly(dataset, args, cfg = None, loss_weights = None):
-    if cfg is None:
-        cfg = default_config
-    if loss_weights is None:
-        loss_weights = default_loss_weights
-
-    all_results = {
-        "phase1": defaultdict(list),
-        "phase2": defaultdict(list),
-        "phase3": defaultdict(list),
-    }
-    for data in tqdm(dataset):
-        sample, folder_name = data
-        output_path = osp.join(args.output_dir, folder_name)
-
-        try:
-            if not cfg.skip_phase_1:
-                pred_mesh_path = osp.join(output_path, "pred_obj_mesh_phase1.obj")
-                if not osp.exists(pred_mesh_path):
-                    print(f"Skipping {folder_name} phase 1 as it has not been predicted.")
-                pred_mesh = trimesh.load(pred_mesh_path, process=False)
-                sample["object_params"].vertices = torch.from_numpy(pred_mesh.vertices).float().cuda()
-                eval_metrics = evaluation(sample)
-                for metric, res in eval_metrics.items():
-                    all_results["phase1"][metric].append(res)
-            
-            if not cfg.skip_phase_2:
-                pred_mesh_path = osp.join(output_path, "pred_obj_mesh_phase2.obj")
-                if not osp.exists(pred_mesh_path):
-                    print(f"Skipping {folder_name} phase 1 as it has not been predicted.")
-                pred_mesh = trimesh.load(pred_mesh_path, process=False)
-                sample["object_params"].vertices = torch.from_numpy(pred_mesh.vertices).float().cuda()
-                eval_metrics = evaluation(sample)
-                for metric, res in eval_metrics.items():
-                    all_results["phase2"][metric].append(res)
-            
-            if not cfg.skip_phase_3:
-                pred_mesh_path = osp.join(output_path, "pred_obj_mesh_phase3.obj")
-                if not osp.exists(pred_mesh_path):
-                    print(f"Skipping {folder_name} phase 1 as it has not been predicted.")
-                pred_mesh = trimesh.load(pred_mesh_path, process=False)
-                sample["object_params"].vertices = torch.from_numpy(pred_mesh.vertices).float().cuda()
-                eval_metrics = evaluation(sample)
-                for metric, res in eval_metrics.items():
-                    all_results["phase3"][metric].append(res)
-        except Exception as e:
-            print(f"Sample {folder_name} induces error: {e}. Skip for now")
-            continue
-    
-    for phase, results in all_results.items():
-        print(f"== {phase} Evaluation Results ==")
-        for metric in results.keys():
-            avg_value = np.mean(results[metric])
-            std_value = np.std(results[metric])
-            print(f"{metric}: {avg_value:.2f} ({std_value:.2f})")
-
 def evaluation(sample):
     metrics = {}
     v2v_success = eval_v2v_success(
@@ -197,7 +143,6 @@ if __name__ == "__main__":
     parser.add_argument("--file_list", "-l", type=str, default=None, help="list (.txt) of all the data to process")
     parser.add_argument("--output_dir", "-o", type=str, help="output directory")
     parser.add_argument("--do_eval", "-e", action="store_true", help="do evaluation")
-    parser.add_argument("--eval_only", action="store_true")
     parser.add_argument("--rewrite", "-r", action="store_true", help="rewrite the outputs even if they exist")
     parser.add_argument("--start", type=int, default=0, help="start index of the dataset")
     parser.add_argument("--end", type=int, default=10**9, help="end index of the dataset")
@@ -215,7 +160,4 @@ if __name__ == "__main__":
     )
     print(f"From {args.start} - {args.end}: {len(hand_dataset)} valid samples loaded.")
     
-    if args.eval_only:
-        main_evalonly(hand_dataset, args, cfg=cfg)
-    else:
-        main(hand_dataset, args, cfg=cfg)
+    main(hand_dataset, args, cfg=cfg)

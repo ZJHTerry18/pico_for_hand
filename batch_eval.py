@@ -5,6 +5,7 @@ from collections import defaultdict
 import numpy as np
 import argparse
 from glob import glob
+import random
 
 def eval_result(folder_list, phase):
     all_results = defaultdict(list)
@@ -16,7 +17,7 @@ def eval_result(folder_list, phase):
                 with open(pred_res_file, "r") as f:
                     res = json.load(f)
             except Exception as e:
-                print(f"{pred_res_file}: {e}.")
+                # print(f"{pred_res_file}: {e}.")
                 continue
             metric_res = res["metrics"]
             for metric in metric_res.keys():
@@ -27,7 +28,8 @@ def eval_result(folder_list, phase):
     print(f"== Phase {phase} Evaluation Results ==")
     for metric in all_results.keys():
         avg_value = np.mean(all_results[metric])
-        print(f"{metric}: {avg_value:.2f}")
+        std_value = np.std(all_results[metric])
+        print(f"{metric}: {avg_value:.2f} ({std_value:.2f})")
     print("=======================================")
 
 if __name__ == "__main__":
