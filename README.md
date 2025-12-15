@@ -1,3 +1,13 @@
+# PICO-for-hand
+
+An adapation of PICO-fit pipeline to hand-object pose fitting, based on hand-object contact annotations.
+
+### Update Logs
+- [2025/12/11] Use SAM2 to get precise masks for frames that are missing original mask annotations.
+
+
+# OFFICIAL README FOR PICO
+
 # PICO: Reconstructing 3D People In Contact with Objects [CVPR 2025]
 
 > Code repository for the paper:  
