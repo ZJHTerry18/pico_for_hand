@@ -6,7 +6,7 @@ An adapation of PICO-fit pipeline to hand-object pose fitting, based on hand-obj
 
 - [2025/12/11] Use SAM2 to get precise masks for frames that are missing original mask annotations.
 
-### Running
+### Running
 
 EPIC-Contact:
 ```shell
