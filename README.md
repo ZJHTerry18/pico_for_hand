@@ -5,8 +5,17 @@ An adapation of PICO-fit pipeline to hand-object pose fitting, based on hand-obj
 ### Update Logs
 - [2025/12/11] Use SAM2 to get precise masks for frames that are missing original mask annotations.
 
+### Running
+EPIC-Contact:
+```shell
+bash scripts/isambard_distributed_epic_xxxvideos.sh
+```
+ARCTIC:
+```shell
+bash scripts/isambard_distributed_arctic.sh
+```
 
-# OFFICIAL README FOR PICO
+# *OFFICIAL README FOR PICO*
 
 # PICO: Reconstructing 3D People In Contact with Objects [CVPR 2025]
 
