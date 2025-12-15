@@ -2,18 +2,18 @@ default_loss_weights = {
     'lw_contact': 8.0,
     'lw_silhouette': 0.3,
     'lw_silhouette_distance': 0.3,
-    'lw_scale': 0,
-    'lw_collision_p2': 1.0,
+    'lw_scale': 4,
+    'lw_collision_p2': 100,
     'lw_collision_p3': 50,
     'lw_pose_reg': 0.05,
-    'lw_silhouette_hand': 0.1,
+    'lw_silhouette_human': 0.1,
 }
 
 epic_loss_weights = {
     'lw_contact': 8.0,
     'lw_silhouette': 0.03,
     'lw_silhouette_distance': 0.03,
-    'lw_scale': 0,
+    'lw_scale': 1.0,
     'lw_collision_p2': 0.01,
     'lw_collision_p3': 0.01,
     'lw_pose_reg': 0.05,

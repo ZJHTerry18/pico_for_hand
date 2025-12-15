@@ -14,12 +14,12 @@ conda activate pico
 mkdir -p logs
 
 TOTAL_SAMPLES=1007
-# INPUT_DIR="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/2025-09-08_gemini_pro"
-INPUT_DIR="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/2025-10-09_rajan_stage_1"
-# INPUT_DIR="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/stage_two_selected_amt_772_videos"
-OUTPUT_DIR="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/2025-11-20_pico_stage3_1007videos_wilorspace/2025-11-20_pico_stage3_1007videos_wilorspace_con8.0_sil0.03_pen0.01_reg0.05_newmask"
-# FILE_LIST="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/stage2_annotated_id_20251010.txt"
-FILE_LIST="/home/s5a/jiahezhao25.s5a/jiahe/data/epic-grasps/best_dirs_annotations_1007batch.json"
+# INPUT_DIR="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/2025-09-08_gemini_pro"
+INPUT_DIR="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/2025-10-09_rajan_stage_1"
+# INPUT_DIR="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/stage_two_selected_amt_772_videos"
+OUTPUT_DIR="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/2025-11-20_pico_stage3_1007videos_wilorspace/2025-11-20_pico_stage3_1007videos_wilorspace_con8.0_sil0.03_pen0.01_reg0.05_newmask"
+# FILE_LIST="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/stage2_annotated_id_20251010.txt"
+FILE_LIST="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/best_dirs_annotations_1007batch.json"
 
 N_TASKS=$SLURM_NTASKS
 if [ -z "$N_TASKS" ]; then

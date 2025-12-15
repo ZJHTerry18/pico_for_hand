@@ -4,7 +4,7 @@ IMAGE_SIZE = 640
 SMPLX_FACES_PATH = 'static/smplx_faces.npy'
 SMPL_TO_SMPLX_MATRIX_PATH = 'static/smpl_to_smplx.pkl'
 HUMAN_MODEL_PATH = 'static/human_model_files'
-MANO_MODEL_PATH = 'static/hand_models/mano_v1_2/models'
+MANO_MODEL_PATH = 'static/MANO/mano_v1_2/models'
 
 # mesh colors
 COLOR_HUMAN_BLUE = [67, 135, 240, 255]
