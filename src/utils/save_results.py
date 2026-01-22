@@ -61,7 +61,7 @@ def save_phase_results(
         with open(out_path, 'wb') as f:
             pickle.dump(hand_pose_data, f)
 
-    # save the object pose for phase 1 or 2
+    # save the object pose for the phase
     if object_phase_params is not None:
         object_pose_data = {}
         ## ini-pose: the transform from canonical pose to PICO initial pose
@@ -96,6 +96,7 @@ def save_phase_results(
             out_path = os.path.join(output_folder, f'pred_phase{phase}_noeval.json')
             save_data = {
                 "pose": object_pose_data,
+                "loss": object_phase_params["loss"]
             }
 
         with open(out_path, "w") as f:

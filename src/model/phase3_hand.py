@@ -218,6 +218,7 @@ def optimize_phase3_hand(
     hand_parameters["global_orient"] = model.mano_global_orient
     hand_parameters["transl"] = model.mano_transl
     hand_parameters["mano_pose_opt"] = model.mano_pose_opt.detach()
-    hand_parameters["mano_betas"] = model.mano_betas 
+    hand_parameters["mano_betas"] = model.mano_betas
+    hand_parameters["loss"] = {k: v.item() for k, v in loss_dict_weighted.items()} 
 
     return hand_parameters

@@ -98,5 +98,6 @@ def optimize_phase1_contact(
     object_parameters["translation"] = model.translation.unsqueeze(0).detach()
     transformed_obj_vertices = apply_transformation(object_params.vertices, model.rotation, model.translation)
     object_parameters['vertices'] = transformed_obj_vertices.detach()
+    object_parameters['loss'] = {"loss_contact": loss.item()}
 
     return object_parameters

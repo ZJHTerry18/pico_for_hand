@@ -3,7 +3,7 @@
 #SBATCH --nodes=16
 #SBATCH --ntasks=64
 #SBATCH --gpus-per-node=4
-#SBATCH --time=05:00:00
+#SBATCH --time=20:00:00
 #SBATCH --output=logs/epic-%j.out
 #SBATCH --error=logs/epic-%j.err
 #SBATCH --mail-user=jiahe.zhao@bristol.ac.uk
@@ -17,7 +17,7 @@ TOTAL_SAMPLES=1007
 # INPUT_DIR="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/2025-09-08_gemini_pro"
 INPUT_DIR="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/2025-10-09_rajan_stage_1"
 # INPUT_DIR="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/stage_two_selected_amt_772_videos"
-OUTPUT_DIR="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/2025-11-20_pico_stage3_1007videos_wilorspace/2025-11-20_pico_stage3_1007videos_wilorspace_con8.0_sil0.03_pen0.01_reg0.05_newmask"
+OUTPUT_DIR="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/pico_v3/pico_stage3_1007videos_wilorspace/2026-01-15_pico_stage3_1007videos_wilorspace_con8.0_sil0.03-occ_pen0.01_sc1.0_reg0.05_maskv2_multiprior"
 # FILE_LIST="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/stage2_annotated_id_20251010.txt"
 FILE_LIST="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/best_dirs_annotations_1007batch.json"
 

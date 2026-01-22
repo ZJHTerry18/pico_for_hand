@@ -31,6 +31,7 @@ class ConfigPack:
         contact_mapping_file: str = 'corresponding_contacts.json',
         # support file names
         sparse_dense_mapping_file: str = 'sparse_dense_mapping.json',
+        object_pose_init: str = 'single',
         # optimization nr of steps
         nr_phase_1_steps: int = 250,
         lr_rotation_phase_1: float = 0.04,
@@ -51,8 +52,8 @@ class ConfigPack:
         self.object_mesh_file = object_mesh_file
         # self.object_detection_file = object_detection_file
         self.contact_mapping_file = contact_mapping_file
-        
         self.sparse_dense_mapping_file = sparse_dense_mapping_file
+        self.object_pose_init = object_pose_init
 
         self.nr_phase_1_steps = nr_phase_1_steps
         self.lr_rotation_phase_1 = lr_rotation_phase_1
@@ -87,6 +88,7 @@ arctic_config = ConfigPack(
 )
 
 epic_config = ConfigPack(
+    object_pose_init="multi-prior", # choices: [single, multi-random, multi_prior, multi-mixed]
     nr_phase_1_steps=250,
     lr_rotation_phase_1=0.04,
     lr_translation_phase_1=0.02,

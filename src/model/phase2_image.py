@@ -40,6 +40,7 @@ class Phase_2_Optimizer(nn.Module):
         self.register_buffer('obj_vertices', object_params.vertices)
         self.register_buffer('obj_faces', object_params.faces)
         self.register_buffer('obj_mask', object_params.mask.float() if object_params.mask is not None else None)
+        self.register_buffer('hand_mask', hand_params.mask.float() if hand_params.mask is not None else None)
         self.register_buffer('obj_init_scaling', torch.tensor([1.0], device='cuda'))
         self.contact_transfer_map = contact_mapping
         self.render_size = render_size
@@ -89,6 +90,16 @@ class Phase_2_Optimizer(nn.Module):
         current_mask = self.renderer.render(
             upd_obj_vertices + self.hum_centroid_offset    # we move hand to centroid when loading, so need to translate it back
         )
+        # import cv2
+        # cv2.imwrite("temp/obj_proj.jpg", (current_mask.cpu().detach().numpy() * 255).astype(np.uint8))
+        # 2025-12-15 UPDATE: remove hand-occluded parts from object projection masks for IoU calculation
+        if self.hand_mask is not None:
+            # print("Hand mask is used in phase2")
+            # print(f"{self.hand_mask.shape=} {torch.unique(self.hand_mask)=}")
+            # print(f"Before operation: {current_mask.shape=} {torch.unique(current_mask)=} {torch.sum(current_mask)=}")
+            current_mask = torch.clamp(current_mask - self.hand_mask, min=0)
+            # print(f"After operation: {current_mask.shape=} {torch.unique(current_mask)=} {torch.sum(current_mask)=}")
+
         intersection = torch.sum(current_mask * self.obj_mask)
         union = torch.sum((current_mask + self.obj_mask).clamp(0, 1))
         loss = 1 - intersection / union
@@ -183,5 +194,6 @@ def optimize_phase2_image(
     object_parameters["scaling"] = model.scaling.detach()
     transformed_obj_vertices = apply_transformation(object_params.vertices, model.rotation, model.translation, model.scaling)
     object_parameters["vertices"] = transformed_obj_vertices.detach()
+    object_parameters["loss"] = {k: v.item() for k, v in loss_dict_weighted.items()}
 
     return object_parameters

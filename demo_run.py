@@ -16,100 +16,76 @@ from src.model.phase2_image import optimize_phase2_image
 from src.model.phase3_hand import optimize_phase3_hand
 from src.evaluation.eval_modules import eval_v2v_success, eval_contact_dev, eval_mrrpe
 
+def run_sample(folder_name, output_path, sample, args, **kwargs):
+    # save the initial pose to check the object pose initialization
+    save_phase_results(folder_name, output_path, sample, phase=0, do_eval=args.do_eval)
+    
+    if not cfg.skip_phase_1:
+        p1_object_params = optimize_phase1_contact(**kwargs)
+        sample["object_params"].vertices = p1_object_params["vertices"]
+        torch.cuda.empty_cache()
+        # evaluate stage 1
+        if args.do_eval:
+            sample["metrics"]["phase1"] = evaluation(sample)
+        # save results
+        save_phase_results(folder_name, output_path, sample, object_phase_params=p1_object_params, phase=1, do_eval=args.do_eval)
+
+    if not cfg.skip_phase_2:
+        p2_object_params = optimize_phase2_image(**kwargs)
+        sample["object_params"].vertices = p2_object_params['vertices']
+        torch.cuda.empty_cache()
+        # evaluate stage 2
+        if args.do_eval:
+            sample["metrics"]["phase2"] = evaluation(sample)
+        # save results
+        save_phase_results(folder_name, output_path, sample, object_phase_params=p2_object_params, phase=2, do_eval=args.do_eval)           
+
+    if not cfg.skip_phase_3:
+        p3_hand_params = optimize_phase3_hand(**kwargs)
+        sample["hand_params"].vertices = p3_hand_params['vertices']
+        torch.cuda.empty_cache()
+        # evaluate stage 3
+        if args.do_eval:
+            sample["metrics"]["phase3"] = evaluation(sample)
+        save_phase_results(folder_name, output_path, sample, hand_phase_params=p3_hand_params, phase=3, do_eval=args.do_eval)            
+
+    postprocess_results(output_path, args.do_eval)
+
 def main(dataset, args, cfg = None, loss_weights = None):
     if cfg is None:
         cfg = default_config
     if loss_weights is None:
         loss_weights = default_loss_weights
 
-
-    # TODO: add eval-only codes
-
-    for i, data in enumerate(dataset):
-        sample, folder_name = data
-        if not folder_name == "P11_104_16725_16786_right_pan_3949.mp4":
-            continue
-        kwargs = {**sample, **vars(cfg)}
-        output_path = osp.join(args.output_dir, folder_name)
-
-        # check whether to skip this task
-        if not args.rewrite and exist_results(output_path, args.do_eval, cfg):
-            print(f"--> Skipping sample '{folder_name}' as it has already been processed.")
-            torch.cuda.empty_cache()
-            continue
-        
-        if args.debug:
-            if not cfg.skip_phase_1:
-                p1_object_params = optimize_phase1_contact(**kwargs)
-                sample["object_params"].vertices = p1_object_params["vertices"]
-                torch.cuda.empty_cache()
-                # evaluate stage 1
-                if args.do_eval:
-                    sample["metrics"]["phase1"] = evaluation(sample)
-                # save results
-                save_phase_results(folder_name, output_path, sample, object_phase_params=p1_object_params, phase=1, do_eval=args.do_eval)
-
-
-            if not cfg.skip_phase_2:
-                p2_object_params = optimize_phase2_image(**kwargs)
-                sample["object_params"].vertices = p2_object_params['vertices']
-                torch.cuda.empty_cache()
-                # evaluate stage 2
-                if args.do_eval:
-                    sample["metrics"]["phase2"] = evaluation(sample)
-                # save results
-                save_phase_results(folder_name, output_path, sample, object_phase_params=p2_object_params, phase=2, do_eval=args.do_eval)           
-
-
-            if not cfg.skip_phase_3:
-                p3_hand_params = optimize_phase3_hand(**kwargs)
-                sample["hand_params"].vertices = p3_hand_params['vertices']
-                torch.cuda.empty_cache()
-                # evaluate stage 3
-                if args.do_eval:
-                    sample["metrics"]["phase3"] = evaluation(sample)
-                save_phase_results(folder_name, output_path, sample, hand_phase_params=p3_hand_params, phase=3, do_eval=args.do_eval)            
-
-            postprocess_results(output_path, args.do_eval)
-        
-        else:
-            try: # fitting part starts here
-                if not cfg.skip_phase_1:
-                    p1_object_params = optimize_phase1_contact(**kwargs)
-                    sample["object_params"].vertices = p1_object_params["vertices"]
-                    torch.cuda.empty_cache()
-                    # evaluate stage 1
-                    if args.do_eval:
-                        sample["metrics"]["phase1"] = evaluation(sample)
-                    # save results
-                    save_phase_results(folder_name, output_path, sample, object_phase_params=p1_object_params, phase=1, do_eval=args.do_eval)
-
-
-                if not cfg.skip_phase_2:
-                    p2_object_params = optimize_phase2_image(**kwargs)
-                    sample["object_params"].vertices = p2_object_params['vertices']
-                    torch.cuda.empty_cache()
-                    # evaluate stage 2
-                    if args.do_eval:
-                        sample["metrics"]["phase2"] = evaluation(sample)
-                    # save results
-                    save_phase_results(folder_name, output_path, sample, object_phase_params=p2_object_params, phase=2, do_eval=args.do_eval)            
-
-
-                if not cfg.skip_phase_3:
-                    p3_hand_params = optimize_phase3_hand(**kwargs)
-                    sample["hand_params"].vertices = p3_hand_params['vertices']
-                    torch.cuda.empty_cache()
-                    # evaluate stage 3
-                    if args.do_eval:
-                        sample["metrics"]["phase3"] = evaluation(sample)
-                    save_phase_results(folder_name, output_path, sample, hand_phase_params=p3_hand_params, phase=3, do_eval=args.do_eval)          
-
-                postprocess_results(output_path, args.do_eval)
-                
-            except Exception as e:
-                print(f"Sample {folder_name} induces error: {e}. Skip for now.")
+    for i, datas in enumerate(dataset):
+        single_data = False
+        if not isinstance(datas, list):
+            single_data = True
+            datas = [datas]
+        for init_i, data in enumerate(datas):
+            sample, folder_name = data
+            if not folder_name == "P01_01_43455_44975_left_pan.mp4":
                 continue
+            kwargs = {**sample, **vars(cfg)}
+            if single_data:
+                output_path = osp.join(args.output_dir, folder_name)
+            else:
+                output_path = osp.join(args.output_dir, folder_name, f"init{init_i}")
+
+            # check whether to skip this task
+            if not args.rewrite and exist_results(output_path, args.do_eval, cfg):
+                print(f"--> Skipping sample '{folder_name}' as it has already been processed.")
+                torch.cuda.empty_cache()
+                continue
+            
+            if args.debug:
+                run_sample(folder_name, output_path, sample, args, **kwargs)    
+            else:
+                try:
+                    run_sample(folder_name, output_path, sample, args, **kwargs)
+                except Exception as e:
+                    print(f"Sample {folder_name} induces error: {e}. Skip for now.")
+                    continue
 
 def evaluation(sample):
     metrics = {}

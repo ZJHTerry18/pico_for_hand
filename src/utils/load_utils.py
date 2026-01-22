@@ -112,6 +112,13 @@ def load_object_params(object_mesh_file: str, object_detection_file: str = None,
         obj_mesh.apply_transform(tr.rotation_matrix(-np.pi/2, [1, 0, 0]))
         # center the mesh
         obj_mesh.apply_translation(centroid_offset)
+    elif isinstance(trans_mat, list): # if list, it is the multiple inits of EPIC
+        angle = np.linalg.norm(trans_mat)
+        axis = trans_mat / angle if angle != 0 else np.array([1.0, 0.0, 0.0])
+        rotation_offset = np.array(trans_mat)
+        centroid_offset = -obj_mesh.centroid
+        obj_mesh.apply_transform(tr.rotation_matrix(angle, axis))
+        obj_mesh.apply_translation(centroid_offset)
     else:
         rotation_offset = np.array([0., 0., 0.])
         centroid_offset = np.array([0., 0., 0.])

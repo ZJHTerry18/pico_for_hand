@@ -1,3 +1,5 @@
+import numpy as np
+
 IMAGE_SIZE = 640
 
 # path to smplx files
@@ -28,3 +30,12 @@ SMPLX_LAYER_ARGS = {
     'create_expression': False,
     'create_transl': False
 }
+
+# object pose initialization strategies
+RADNOM_MULTIPLE = [
+    [-np.pi / 2, 0, 0],
+    [np.pi / 2, 0, 0],
+    [0, 0, 0],
+    [np.pi, 0, 0],
+]
+RANDOM_PRIOR = 'static/object_pose_priors'
