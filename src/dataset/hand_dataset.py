@@ -102,6 +102,7 @@ class EpicDataset(Dataset):
         img = load_image(image_path)
         load_hand_mask = (not (self.cfg.skip_phase_3 and self.cfg.skip_phase_2)) and (self._check_file(hand_mask_path))
         load_obj_mask = (not self.cfg.skip_phase_2) and (self._check_file(obj_mask_path))
+        load_occ_mask = load_obj_mask
         load_mano = (not self.cfg.skip_phase_3)
         hand_params = load_hand_params(
             hand_mesh_path, hand_detection_file=hand_mask_path, imgsize=render_img_size, 
@@ -114,7 +115,7 @@ class EpicDataset(Dataset):
         if self.cfg.object_pose_init == "single":
             object_params, _ = load_object_params(
                 obj_mesh_path, object_detection_file=obj_mask_path, imgsize=render_img_size, 
-                trans_mat=None, load_obj_mask=load_obj_mask, cam_intrinsic=cam_intrinsic
+                trans_mat=None, load_obj_mask=load_obj_mask, load_occ_mask=load_occ_mask, cam_intrinsic=cam_intrinsic
             )
             # ## TEST: visualize the rendered masks
             # obj_mask = object_params.mask.cpu().numpy()
@@ -170,7 +171,7 @@ class EpicDataset(Dataset):
             for inipose in init_poses:
                 object_params, _ = load_object_params(
                     obj_mesh_path, object_detection_file=obj_mask_path, imgsize=render_img_size, 
-                    trans_mat=inipose, load_obj_mask=load_obj_mask, cam_intrinsic=cam_intrinsic
+                    trans_mat=inipose, load_obj_mask=load_obj_mask, load_occ_mask=load_occ_mask, cam_intrinsic=cam_intrinsic
                 )
 
                 sample = dict()

@@ -87,22 +87,27 @@ def load_hand_params(hand_inference_file: str, lr_flag: str, hand_detection_file
     
 
 def load_object_params(object_mesh_file: str, object_detection_file: str = None, imgsize: np.ndarray = None,
-                       trans_mat=None, load_obj_mask=False, cam_intrinsic=None) -> Tuple[ObjectParams, torch.Tensor]:
+                       trans_mat=None, load_obj_mask=False, load_occ_mask=False, cam_intrinsic=None) -> Tuple[ObjectParams, torch.Tensor]:
     obj_mesh = trimesh.load(object_mesh_file)
     gt_vertices = torch.from_numpy(obj_mesh.vertices).float()
 
     # render object mask
+    mask = None
+    occ_mask = None
     if load_obj_mask:
         if object_detection_file:
             mask = cv2.imread(object_detection_file) / 255.0
             mask = cv2.resize(mask, (imgsize[1], imgsize[0]))[:, :, 0]
+            if load_occ_mask:
+                occ_mask_file = object_detection_file.replace('object_mask.png', 'occ_obj_mask.png')
+                if os.path.exists(occ_mask_file):
+                    occ_mask = cv2.imread(occ_mask_file) / 255.0
+                    occ_mask = cv2.resize(occ_mask, (imgsize[1], imgsize[0]))[: ,:, 0]
         else:
             faces = torch.from_numpy(obj_mesh.faces).float().cuda()
             vertices = torch.from_numpy(obj_mesh.vertices).float().cuda()
             renderer = MySoftSilhouetteRenderer(img_shape=imgsize, faces=faces, cam_intrinsic=cam_intrinsic)
-            mask = renderer.render(vertices).cpu().numpy()    
-    else:
-        mask = None
+            mask = renderer.render(vertices).cpu().numpy()
 
     # initialize object pose, according to how the HOI dataset defines it
     if trans_mat is None:
@@ -143,6 +148,7 @@ def load_object_params(object_mesh_file: str, object_detection_file: str = None,
         rotation_offset = rotation_offset.copy(), # rotation offset of the initial pose from the canonical pose
         centroid_offset = centroid_offset.copy(), # centroid offset of the initial pose from the canonical pose
         mask = mask,
+        occ_mask = occ_mask,
         scale = obj_mesh.extents.max()
     )
 

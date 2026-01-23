@@ -51,6 +51,7 @@ class ObjectParams:
         rotation_offset,
         centroid_offset,
         mask,
+        occ_mask,
         scale,
     ):
         self.vertices = vertices
@@ -58,6 +59,7 @@ class ObjectParams:
         self.rotation_offset = rotation_offset
         self.centroid_offset = centroid_offset
         self.mask = mask
+        self.occ_mask = occ_mask
         self.scale = scale
 
     def to_cuda(self):
@@ -66,6 +68,7 @@ class ObjectParams:
         self.rotation_offset = torch.from_numpy(self.rotation_offset).float().cuda()
         self.centroid_offset = torch.from_numpy(self.centroid_offset).float().cuda()
         self.mask = torch.tensor(self.mask).cuda() if self.mask is not None else None
+        self.occ_mask = torch.tensor(self.occ_mask).cuda() if self.occ_mask is not None else None
         self.scale = torch.tensor(self.scale).float().cuda()
     
     def to_cpu(self):
@@ -74,6 +77,7 @@ class ObjectParams:
         self.rotation_offset = self.rotation_offset.detach().cpu().numpy()
         self.centroid_offset = self.centroid_offset.detach().cpu().numpy()
         self.mask = self.mask.detach().cpu() if self.mask is not None else None
+        self.occ_mask = self.occ_mask.detach().cpu() if self.occ_mask is not None else None
         self.scale = self.scale.detach().cpu().numpy()
 
     def __str__(self):

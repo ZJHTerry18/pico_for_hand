@@ -5,9 +5,28 @@ import sys
 from tqdm import tqdm
 import shutil
 
-result_dir = '/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/pico_v3/pico_stage3_1007videos_wilorspace/2026-01-15_pico_stage3_1007videos_wilorspace_con8.0_sil0.03-occ_pen0.01_sc1.0_reg0.05_maskv2_multiprior'
-separate_save = '/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/pico_v3/pico_stage3_1007videos_wilorspace/2026-01-15_pico_stage3_1007videos_wilorspace_con8.0_sil0.03-occ_pen0.01_sc1.0_reg0.05_maskv2_multiprior-selbest'
+result_dir = '/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/pico_v3/pico_stage3_306videos_wilorspace/2026-01-15_pico_stage3_306videos_wilorspace_con8.0_sil0.03-occ_pen0.01_sc1.0_reg0.05_maskv2_multiprior'
+separate_save = '/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/pico_v3/pico_stage3_306videos_wilorspace/2026-01-15_pico_stage3_306videos_wilorspace_con8.0_sil0.03-occ_pen0.01_sc1.0_reg0.05_maskv2_multiprior-selbest'
+rewrite = False
+
 os.makedirs(separate_save, exist_ok=True)
+
+def incremental_copy(src_dir, dst_dir):
+    if not os.path.exists(dst_dir):
+        os.makedirs(dst_dir)
+
+    for item in os.listdir(src_dir):
+        s = os.path.join(src_dir, item)
+        d = os.path.join(dst_dir, item)
+
+        if os.path.isdir(s):
+            # Recursively call for subdirectories
+            incremental_copy(s, d)
+        else:
+            # Check if destination file exists AND if source is newer
+            # OR if the destination file simply doesn't exist
+            if not os.path.exists(d) or os.path.getmtime(s) > os.path.getmtime(d):
+                shutil.copy2(s, d)
 
 sample_folders = [x for x in sorted(os.listdir(result_dir)) if osp.isdir(osp.join(result_dir, x))]
 for sf in tqdm(sample_folders):
@@ -32,7 +51,10 @@ for sf in tqdm(sample_folders):
         if separate_save:
             src_fol = osp.join(sample_dir, best_init_fol)
             tgt_fol = osp.join(separate_save, sf)
-            shutil.copytree(src_fol, tgt_fol)
+            if not rewrite:
+                incremental_copy(src_fol, tgt_fol)
+            else:
+                shutil.copytree(src_fol, tgt_fol)
     except:
         continue
     

@@ -41,6 +41,7 @@ class Phase_2_Optimizer(nn.Module):
         self.register_buffer('obj_faces', object_params.faces)
         self.register_buffer('obj_mask', object_params.mask.float() if object_params.mask is not None else None)
         self.register_buffer('hand_mask', hand_params.mask.float() if hand_params.mask is not None else None)
+        self.register_buffer('occ_mask', object_params.occ_mask.float() if object_params.occ_mask is not None else None)
         self.register_buffer('obj_init_scaling', torch.tensor([1.0], device='cuda'))
         self.contact_transfer_map = contact_mapping
         self.render_size = render_size
@@ -98,6 +99,12 @@ class Phase_2_Optimizer(nn.Module):
             # print(f"{self.hand_mask.shape=} {torch.unique(self.hand_mask)=}")
             # print(f"Before operation: {current_mask.shape=} {torch.unique(current_mask)=} {torch.sum(current_mask)=}")
             current_mask = torch.clamp(current_mask - self.hand_mask, min=0)
+            # print(f"After operation: {current_mask.shape=} {torch.unique(current_mask)=} {torch.sum(current_mask)=}")
+        if self.occ_mask is not None:
+            # print("Object occlusion mask is used in phase2")
+            # print(f"{self.occ_mask.shape=} {torch.unique(self.occ_mask)=}")
+            # print(f"Before operation: {current_mask.shape=} {torch.unique(current_mask)=} {torch.sum(current_mask)=}")
+            current_mask = torch.clamp(current_mask - self.occ_mask, min=0)
             # print(f"After operation: {current_mask.shape=} {torch.unique(current_mask)=} {torch.sum(current_mask)=}")
 
         intersection = torch.sum(current_mask * self.obj_mask)

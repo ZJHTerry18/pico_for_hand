@@ -64,7 +64,7 @@ def main(dataset, args, cfg = None, loss_weights = None):
             datas = [datas]
         for init_i, data in enumerate(datas):
             sample, folder_name = data
-            if not folder_name == "P01_01_43455_44975_left_pan.mp4":
+            if not folder_name == "P01_103_378_423_left_plate_1858.mp4":
                 continue
             kwargs = {**sample, **vars(cfg)}
             if single_data:
@@ -78,6 +78,7 @@ def main(dataset, args, cfg = None, loss_weights = None):
                 torch.cuda.empty_cache()
                 continue
             
+            print(f"Run object pose initialization {init_i}")
             if args.debug:
                 run_sample(folder_name, output_path, sample, args, **kwargs)    
             else:
