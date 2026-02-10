@@ -48,8 +48,9 @@ class SDFLoss(nn.Module):
         return isolated
 
 
-    def forward(self, human_verts, object_verts, scale_factor=0.2):
+    def forward_upd_object(self, human_verts, object_verts, scale_factor=0.2):
         """ Calculate SDF loss between human and object
+        Build SDF for human, and update object vertices
         remark: currently only supports 1 human and 1 object
         """
         human_verts = human_verts.unsqueeze(0)
@@ -85,7 +86,55 @@ class SDFLoss(nn.Module):
         cur_loss = phi_val
 
         if self.debugging:
-            import ipdb;ipdb.set_trace()
+            import pdb; pdb.set_trace()
+            
+        # robustifier
+        if self.robustifier:
+            frac = (phi_val / self.robustifier) ** 2
+            cur_loss = frac / (frac + 1)
+
+        loss += cur_loss.sum() ** 2
+        return loss
+
+    def forward_upd_human(self, human_verts, object_verts, scale_factor=0.2):
+        """ Calculate SDF loss between human and object
+        Build SDF for object, and update human vertices
+        remark: currently only supports 1 human and 1 object
+        """
+        human_verts = human_verts.unsqueeze(0)
+        object_verts = object_verts.unsqueeze(0)
+
+        loss = torch.tensor(0., device=object_verts.device)
+
+        box_human = self.get_bounding_boxes(human_verts)
+        box_object = self.get_bounding_boxes(object_verts)
+
+        overlapping_boxes = ~self.filter_isolated_boxes(torch.cat([box_human, box_object], dim=0))
+        # If no overlapping voxels, return 0
+        if overlapping_boxes.sum() == 0:
+            return loss
+
+        box_center_object = box_object.mean(dim=1).unsqueeze(dim=1)
+        box_scale_object = (1+scale_factor) * 0.5*(box_object[:,1] - box_object[:,0]).max(dim=-1)[0][:,None,None]
+
+        with torch.no_grad():
+            obj_vertices_centered = object_verts - box_center_object
+            obj_vertices_centered_scaled = obj_vertices_centered / box_scale_object
+            assert(obj_vertices_centered_scaled.min() >= -1)
+            assert(obj_vertices_centered_scaled.max() <= 1)
+            phi_object = self.sdf(self.faces, obj_vertices_centered_scaled)
+            assert(phi_object.min() >= 0)
+
+        # Convert vertices to the format expected by grid_sample
+        # Change coordinate system to local coordinate system of each object
+        vertices_local = (human_verts - box_center_object.unsqueeze(dim=0)) / box_scale_object.unsqueeze(dim=0)
+        vertices_grid = vertices_local.view(1,-1,1,1,3)
+        # Sample from the phi grid
+        phi_val = nn.functional.grid_sample(phi_object[0][None, None], vertices_grid, align_corners=True).view(1, -1)
+        cur_loss = phi_val
+
+        if self.debugging:
+            import pdb; pdb.set_trace()
             
         # robustifier
         if self.robustifier:

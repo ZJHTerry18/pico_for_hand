@@ -9,8 +9,7 @@ from typing import Tuple
 
 from src.constants import IMAGE_SIZE, SMPLX_FACES_PATH
 from src.utils.structs import HandParams, ObjectParams
-from src.utils.renderer_out import MySoftSilhouetteRenderer
-
+from src.utils.renderer_out import MySoftSilhouetteRenderer    
 
 def load_image(image_path: str) -> np.ndarray:
     image = cv2.imread(image_path)

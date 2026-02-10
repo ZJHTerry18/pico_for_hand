@@ -4,6 +4,7 @@ import json
 import numpy as np
 from collections import defaultdict
 from glob import glob
+import copy
 import torch
 from torch.utils.data import Dataset
 
@@ -176,7 +177,7 @@ class EpicDataset(Dataset):
 
                 sample = dict()
                 sample["img"] = img
-                sample["hand_params"] = hand_params
+                sample["hand_params"] = copy.deepcopy(hand_params)
                 sample["object_params"] = object_params
                 sample["contact_mapping"] = contact_mapping
                 sample["sparse_dense_mapping"] = sparse_dense_mapping

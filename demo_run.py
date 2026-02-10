@@ -10,6 +10,7 @@ import torch
 from src.config_packs import CONFIGS_FACTORY
 from src.dataset.hand_dataset import DATASET_FACTORY
 from src.utils.save_results import save_phase_results, postprocess_results, exist_results
+from src.utils.parse_config import update_config_from_args
 from src.config_packs import default_config, default_loss_weights
 from src.model.phase1_contact import optimize_phase1_contact
 from src.model.phase2_image import optimize_phase2_image
@@ -50,21 +51,31 @@ def run_sample(folder_name, output_path, sample, args, **kwargs):
         save_phase_results(folder_name, output_path, sample, hand_phase_params=p3_hand_params, phase=3, do_eval=args.do_eval)            
 
     postprocess_results(output_path, args.do_eval)
+    print("Sample running finished.")
 
 def main(dataset, args, cfg = None, loss_weights = None):
     if cfg is None:
         cfg = default_config
     if loss_weights is None:
         loss_weights = default_loss_weights
+    
+    cfg, args = update_config_from_args(cfg, args)
 
+    stop_running = False
     for i, datas in enumerate(dataset):
+        if stop_running:
+            break
+
         single_data = False
         if not isinstance(datas, list):
             single_data = True
             datas = [datas]
         for init_i, data in enumerate(datas):
+            if init_i != 0:
+                continue
             sample, folder_name = data
-            if not folder_name == "P01_103_378_423_left_plate_1858.mp4":
+            if not folder_name == args.sample_name:
+            # if not folder_name == "P01_01_28797_28850_right_cup_1720.mp4":
                 continue
             kwargs = {**sample, **vars(cfg)}
             if single_data:
@@ -76,16 +87,19 @@ def main(dataset, args, cfg = None, loss_weights = None):
             if not args.rewrite and exist_results(output_path, args.do_eval, cfg):
                 print(f"--> Skipping sample '{folder_name}' as it has already been processed.")
                 torch.cuda.empty_cache()
-                continue
+                exit()
             
             print(f"Run object pose initialization {init_i}")
             if args.debug:
-                run_sample(folder_name, output_path, sample, args, **kwargs)    
+                run_sample(folder_name, output_path, sample, args, **kwargs)
+                stop_running = True 
             else:
                 try:
                     run_sample(folder_name, output_path, sample, args, **kwargs)
+                    stop_running = True
                 except Exception as e:
                     print(f"Sample {folder_name} induces error: {e}. Skip for now.")
+                    stop_running = True
                     continue
 
 def evaluation(sample):
@@ -119,11 +133,22 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", "-i", type=str, help="dataset directory")
     parser.add_argument("--file_list", "-l", type=str, default=None, help="list (.txt) of all the data to process")
     parser.add_argument("--output_dir", "-o", type=str, help="output directory")
+    parser.add_argument("--sample_name", "-s", type=str, help="name of sample")
     parser.add_argument("--do_eval", "-e", action="store_true", help="do evaluation")
     parser.add_argument("--rewrite", "-r", action="store_true", help="rewrite the outputs even if they exist")
     parser.add_argument("--start", type=int, default=0, help="start index of the dataset")
     parser.add_argument("--end", type=int, default=10**9, help="end index of the dataset")
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument(
+        "opts",
+        help="""
+            Modify config options at the end of the command. For Yacs configs, use
+            space-separated "PATH.KEY VALUE" pairs.
+            For python-based LazyConfig, use "path.key=value".
+        """.strip(),
+        default=None,
+        nargs=argparse.REMAINDER,
+    )
     args = parser.parse_args()
 
     # Setup configurations and dataset

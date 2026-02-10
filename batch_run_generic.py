@@ -13,6 +13,7 @@ from collections import defaultdict
 from src.config_packs import CONFIGS_FACTORY
 from src.dataset.hand_dataset import DATASET_FACTORY
 from src.utils.save_results import save_phase_results, postprocess_results, exist_results
+from src.utils.parse_config import update_config_from_args
 from src.config_packs import default_config, default_loss_weights
 from src.model.phase1_contact import optimize_phase1_contact
 from src.model.phase2_image import optimize_phase2_image
@@ -59,6 +60,8 @@ def main(dataset, args, cfg = None, loss_weights = None):
         cfg = default_config
     if loss_weights is None:
         loss_weights = default_loss_weights
+
+    cfg, args = update_config_from_args(cfg, args)
 
     for i, datas in enumerate(dataset):
         single_data = False
@@ -181,6 +184,16 @@ if __name__ == "__main__":
     parser.add_argument("--start", type=int, default=0, help="start index of the dataset")
     parser.add_argument("--end", type=int, default=10**9, help="end index of the dataset")
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument(
+        "opts",
+        help="""
+            Modify config options at the end of the command. For Yacs configs, use
+            space-separated "PATH.KEY VALUE" pairs.
+            For python-based LazyConfig, use "path.key=value".
+        """.strip(),
+        default=None,
+        nargs=argparse.REMAINDER,
+    )
     args = parser.parse_args()
 
     # Setup configurations and dataset

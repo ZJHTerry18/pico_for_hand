@@ -58,7 +58,7 @@ class Phase_2_Optimizer(nn.Module):
     def calculate_contact_loss(self, upd_obj_vertices):
         new_object_points = calculate_object_points(upd_obj_vertices, self.contact_transfer_map, self.obj_faces)
         loss = torch.nn.functional.mse_loss(self.human_points, new_object_points)
-        return {"loss_contact": loss}
+        return {"loss_contact_p2": loss}
     
     def calculate_scale_loss(self):
         # current scale is the biggest dimension of the object (from the 3 axes)
@@ -66,7 +66,7 @@ class Phase_2_Optimizer(nn.Module):
         return {"loss_scale": loss}
     
     def calculate_collision_loss(self, upd_obj_vertices):
-        loss = self.sdf_loss(self.hum_vertices, upd_obj_vertices)
+        loss = self.sdf_loss.forward_upd_object(self.hum_vertices, upd_obj_vertices)
         return {"loss_collision_p2": loss}
     
     def calculate_centroid(self, mask):
@@ -121,7 +121,7 @@ class Phase_2_Optimizer(nn.Module):
         upd_obj_vertices = apply_transformation(self.obj_vertices, self.rotation, self.translation, self.scaling)
         
         loss_dict = {}
-        if loss_weights["lw_contact"] > 0:
+        if loss_weights["lw_contact_p2"] > 0:
             loss_dict.update(self.calculate_contact_loss(upd_obj_vertices))
         if loss_weights["lw_silhouette"] > 0 and self.obj_mask is not None: # for samples without object masks, we cannot calculate mask loss
             loss_dict.update(self.calculate_silhouette_loss_iou(upd_obj_vertices, distance_penalty=loss_weights["lw_silhouette_distance"]))

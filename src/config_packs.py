@@ -1,5 +1,6 @@
 default_loss_weights = {
-    'lw_contact': 8.0,
+    'lw_contact_p2': 8.0,
+    'lw_contact_p3': 8.0,
     'lw_silhouette': 0.3,
     'lw_silhouette_distance': 0.3,
     'lw_scale': 4,
@@ -10,13 +11,14 @@ default_loss_weights = {
 }
 
 epic_loss_weights = {
-    'lw_contact': 8.0,
+    'lw_contact_p2': 8.0,
+    'lw_contact_p3': 80.0,
     'lw_silhouette': 0.03,
     'lw_silhouette_distance': 0.03,
     'lw_scale': 1.0,
     'lw_collision_p2': 0.01,
-    'lw_collision_p3': 0.01,
-    'lw_pose_reg': 0.05,
+    'lw_collision_p3': 100.0,
+    'lw_pose_reg': 0.5,
     'lw_silhouette_hand': 0.03,
 }
 
@@ -44,6 +46,8 @@ class ConfigPack:
         skip_phase_2: bool = False,
         nr_phase_3_steps: int = 1000,
         lr_phase_3: float=0.01,
+        phase_3_upd_trans: bool = False,
+        phase_3_upd_rot: bool = False,
         skip_phase_3: bool = False,
         loss_weights: dict = default_loss_weights,
     ):
@@ -66,6 +70,8 @@ class ConfigPack:
         self.skip_phase_2 = skip_phase_2
         self.nr_phase_3_steps = nr_phase_3_steps
         self.lr_phase_3 = lr_phase_3
+        self.phase_3_upd_trans = phase_3_upd_trans
+        self.phase_3_upd_rot = phase_3_upd_rot
         self.skip_phase_3 = skip_phase_3
 
         self.loss_weights = loss_weights
@@ -100,6 +106,7 @@ epic_config = ConfigPack(
     skip_phase_2=False,
     nr_phase_3_steps=500,
     lr_phase_3=0.01,
+    phase_3_upd_trans=True,
     skip_phase_3=False,
     loss_weights=epic_loss_weights,
 )
