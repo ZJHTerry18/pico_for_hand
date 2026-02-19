@@ -3,6 +3,7 @@ import torch.nn as nn
 import trimesh
 from tqdm.auto import tqdm
 import numpy as np
+import copy
 from smplx import MANO
 
 from src.constants import MANO_MODEL_PATH
@@ -179,11 +180,15 @@ def optimize_phase3_hand(
     # print("Optimizing left hand:", left_hand_opt)
     # print("Optimizing right hand:", right_hand_opt)
 
-    loss_weights = kwargs["loss_weights"]
-    nr_phase_3_steps = kwargs["nr_phase_3_steps"]
-    lr_phase_3 = kwargs.get("lr_phase_3", 0.01)
-    update_hand_transl = kwargs.get("phase_3_upd_trans", False)
-    update_hand_rot = kwargs.get("phase_3_upd_rot", False)
+    opt_args = copy.deepcopy(kwargs)
+    loss_weights = opt_args["loss_weights"]
+    nr_phase_3_steps = opt_args["nr_phase_3_steps"]
+    lr_phase_3 = opt_args.get("lr_phase_3", 0.01)
+    # hard-code: For EPIC, increase penetration weight for objects with thin parts
+    if opt_args["meta_info"].get("cat", None) in ["pan", "plate", "saucepan", "bowl"]:
+        opt_args["loss_weights"]["lw_collision_p3"] *= 10.0
+    update_hand_transl = opt_args.get("phase_3_upd_trans", False)
+    update_hand_rot = opt_args.get("phase_3_upd_rot", False)
 
     model = Phase_3_Optimizer(
         hand_params.mano_params,
@@ -223,13 +228,18 @@ def optimize_phase3_hand(
         loss = sum(loss_dict_weighted.values())
         loss.backward() # remove retain_graph=True for memory reasons
         optimizer.step()
-        # loop.set_description(f'loss: {loss.item():.3g}')
-        # loop.update()
 
         if i % 50 == 0:
             loss_str = " | ".join([f"{k}: {loss_dict_weighted[k].item():.3g}" for k in loss_dict_weighted])
             print(loss_str)
             # print('hand', torch.mean(model.mano_pose_opt.grad), torch.mean(model.mano_pose_opt))
+
+            # dynamic loss weight adjustment here
+            # pen_loss_thr = 1e-8
+            # if loss_dict["loss_collision_p3"] > pen_loss_thr:
+            #     loss_weights["lw_collision_p3"] = min(loss_weights["lw_collision_p3"] * 10, 1e6)
+            #     print(f"lw_collision_p3 adjusted to {loss_weights['lw_collision_p3']}")
+
 
 
     hand_parameters = {}

@@ -7,6 +7,8 @@ def parse_param_string(cfg, template):
         add_str += "_upd-h-trans"
     if cfg.phase_3_upd_rot:
         add_str += "_upd-h-rot"
+    if cfg.phase_3_dyn_w:
+        add_str += "_dyn-w"
     parsed_str = template.format(
         lws['lw_contact_p2'], lws['lw_contact_p3'], 
         lws['lw_silhouette'], lws['lw_collision_p2'], lws['lw_scale'],

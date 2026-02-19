@@ -69,6 +69,8 @@ def main(dataset, args, cfg = None, loss_weights = None):
             single_data = True
             datas = [datas]
         for init_i, data in enumerate(datas):
+            # if init_i != 0:
+            #     continue
             sample, folder_name = data
             kwargs = {**sample, **vars(cfg)}
             if single_data:
@@ -82,6 +84,7 @@ def main(dataset, args, cfg = None, loss_weights = None):
                 torch.cuda.empty_cache()
                 continue
             
+            print(f"Run object pose initialization {init_i}")
             if args.debug:
                 run_sample(folder_name, output_path, sample, args, **kwargs)    
             else:
@@ -90,6 +93,7 @@ def main(dataset, args, cfg = None, loss_weights = None):
                 except Exception as e:
                     print(f"Sample {folder_name} induces error: {e}. Skip for now.")
                     continue
+        print("Sample running finished")
 
 def main_evalonly(dataset, args, cfg = None, loss_weights = None):
     if cfg is None:
@@ -103,10 +107,9 @@ def main_evalonly(dataset, args, cfg = None, loss_weights = None):
         "phase3": defaultdict(list),
     }
     for data in tqdm(dataset):
-        sample, folder_name = data
-        output_path = osp.join(args.output_dir, folder_name)
-
         try:
+            sample, folder_name = data
+            output_path = osp.join(args.output_dir, folder_name)
             if not cfg.skip_phase_1:
                 pred_mesh_path = osp.join(output_path, "pred_obj_mesh_phase1.obj")
                 if not osp.exists(pred_mesh_path):

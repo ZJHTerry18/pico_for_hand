@@ -4,6 +4,7 @@ An adapation of PICO-fit pipeline to hand-object pose fitting, based on hand-obj
 
 ### Update Logs
 
+- [x] [2026/02/19] Add category-wise phase-3 penetration loss weights.
 - [x] [2026/02/10] Fix phase-3 SDF loss calculation.
 - [x] [2026/01/23] Implement occlusion-aware object mask loss to be aware of other masks in the image.
 - [x] [2026/01/22] Use multiple object pose initializations from the EPIC-Grasps prior. 

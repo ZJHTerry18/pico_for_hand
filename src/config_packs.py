@@ -17,7 +17,7 @@ epic_loss_weights = {
     'lw_silhouette_distance': 0.03,
     'lw_scale': 1.0,
     'lw_collision_p2': 0.01,
-    'lw_collision_p3': 100.0,
+    'lw_collision_p3': 1.0,
     'lw_pose_reg': 0.5,
     'lw_silhouette_hand': 0.03,
 }
@@ -48,6 +48,7 @@ class ConfigPack:
         lr_phase_3: float=0.01,
         phase_3_upd_trans: bool = False,
         phase_3_upd_rot: bool = False,
+        phase_3_dyn_w: bool = False,
         skip_phase_3: bool = False,
         loss_weights: dict = default_loss_weights,
     ):
@@ -72,6 +73,7 @@ class ConfigPack:
         self.lr_phase_3 = lr_phase_3
         self.phase_3_upd_trans = phase_3_upd_trans
         self.phase_3_upd_rot = phase_3_upd_rot
+        self.phase_3_dyn_w = phase_3_dyn_w
         self.skip_phase_3 = skip_phase_3
 
         self.loss_weights = loss_weights
@@ -94,7 +96,7 @@ arctic_config = ConfigPack(
 )
 
 epic_config = ConfigPack(
-    object_pose_init="multi-prior", # choices: [single, multi-random, multi_prior, multi-mixed]
+    object_pose_init="multi-mixed", # choices: [single, multi-random, multi_prior, multi-mixed]
     nr_phase_1_steps=250,
     lr_rotation_phase_1=0.04,
     lr_translation_phase_1=0.02,
@@ -107,6 +109,7 @@ epic_config = ConfigPack(
     nr_phase_3_steps=500,
     lr_phase_3=0.01,
     phase_3_upd_trans=True,
+    phase_3_dyn_w=False,
     skip_phase_3=False,
     loss_weights=epic_loss_weights,
 )

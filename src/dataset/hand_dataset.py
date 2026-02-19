@@ -79,25 +79,30 @@ class EpicDataset(Dataset):
         hand_npz_path = osp.join(folder_path, "wilor_output.pkl")
         hand_mask_path = osp.join(folder_path, "hand_mask.png")
         obj_mask_path = osp.join(folder_path, "object_mask.png")
-        assert self._check_file(image_path)
-        assert self._check_file(hand_mesh_path)
-        assert self._check_file(obj_mesh_path), f"{obj_mesh_path} does not exist"
-        assert self._check_file(contact_path)
+        try:
+            assert self._check_file(image_path)
+            assert self._check_file(hand_mesh_path)
+            assert self._check_file(obj_mesh_path), f"{obj_mesh_path} does not exist"
+            assert self._check_file(contact_path)
+            assert self._check_file(hand_npz_path), f"{hand_npz_path} does not exist"
+        except Exception as e:
+            print(f"{folder_name} has missing files: {e}. Skip.")
+            return []
 
         # get camera intrinsic matrix
         cam_intrinsic = None
+        hand_npz = None
         render_img_size = [456, 256]
-        # TODO
-        if not (self.cfg.skip_phase_2 and self.cfg.skip_phase_3):
-            assert self._check_file(hand_npz_path), f"{hand_npz_path} does not exist"
-            hand_npz = np.load(hand_npz_path, allow_pickle=True)[lr_flag]
-            fl = hand_npz['focal_length'].item()
-            cx, cy = hand_npz['img_size'][0], hand_npz['img_size'][1]
-            render_img_size = [int(cy * 2), int(cx * 2)]
-            cam_intrinsic = torch.FloatTensor([[fl, 0, cx], [0, fl, cy], [0, 0, 1]])
+        hand_npz = np.load(hand_npz_path, allow_pickle=True)[lr_flag]
+        fl = hand_npz['focal_length'].item()
+        cx, cy = hand_npz['img_size'][0], hand_npz['img_size'][1]
+        render_img_size = [int(cy * 2), int(cx * 2)]
+        cam_intrinsic = torch.FloatTensor([[fl, 0, cx], [0, fl, cy], [0, 0, 1]])
 
         # TODO: get objectmeta
-        meta_info = dict()
+        meta_info = {
+            "cat": obj_cat
+        }
 
         # load image, hand parameters, object parameters, contact
         img = load_image(image_path)
