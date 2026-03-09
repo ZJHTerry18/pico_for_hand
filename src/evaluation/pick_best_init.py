@@ -5,9 +5,9 @@ import sys
 from tqdm import tqdm
 import shutil
 
-result_dir = '/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/pico_v3/pico_stage3_fullvideos/2026-02-17_pico_stage3_rand100videos_wilorspace_maskv3_newsf_multimixed_con-p2-8.0_con-p3-80.0_silo0.03-occ_peno0.01_sc1.0_silh0.03_penh1.0_reg0.5_upd-h-trans'
-separate_save = '/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/pico_v3/pico_stage3_fullvideos/2026-02-17_pico_stage3_rand100videos_wilorspace_maskv3_newsf_multimixed_con-p2-8.0_con-p3-80.0_silo0.03-occ_peno0.01_sc1.0_silh0.03_penh1.0_reg0.5_upd-h-trans_selbest'
-rewrite = False
+result_dir = '/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/pico_v3/pico_stage3_fullvideos/2026-02-19_pico_stage3_rand100videos_wilorspace_maskv3_newsf_multimixed_con-p2-8.0_con-p3-80.0_silo0.03-occ_peno0.01_sc1.0_silh0.03_penh1.0_reg0.5_upd-h-trans'
+separate_save = '/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/pico_v3/pico_stage3_fullvideos/2026-02-19_pico_stage3_rand100videos_wilorspace_maskv3_newsf_multimixed_con-p2-8.0_con-p3-80.0_silo0.03-occ_peno0.01_sc1.0_silh0.03_penh1.0_reg0.5_upd-h-trans_selbest'
+rewrite = True
 
 os.makedirs(separate_save, exist_ok=True)
 
@@ -55,6 +55,7 @@ for sf in tqdm(sample_folders):
                 incremental_copy(src_fol, tgt_fol)
             else:
                 shutil.copytree(src_fol, tgt_fol)
-    except:
+    except Exception as e:
+        print(f"{sf} has error: {e}. Skip.")
         continue
     

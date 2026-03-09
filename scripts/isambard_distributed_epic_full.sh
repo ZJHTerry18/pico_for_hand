@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=parallel_pico_epic
-#SBATCH --nodes=4
-#SBATCH --ntasks=256
+#SBATCH --nodes=20
+#SBATCH --ntasks=1280
 #SBATCH --gpus-per-node=4
 #SBATCH --time=1-00:00:00
 #SBATCH --output=logs/epic-%j.out
@@ -15,9 +15,9 @@ source ~/.bashrc
 conda activate pico
 mkdir -p logs
 
-TOTAL_SAMPLES=100
+TOTAL_SAMPLES=2400
 INPUT_DIR="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/epic-contact_2026-02-17_full"
-OUTPUT_DIR="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/pico_v3/pico_stage3_fullvideos/2026-02-17_pico_stage3_rand100videos_wilorspace_maskv3_newsf_multimixed_[template]"
+OUTPUT_DIR="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/pico_v3/pico_stage3_fullvideos/2026-02-19_pico_stage3_rand100videos_wilorspace_maskv3_newsf_multimixed_[template]"
 # FILE_LIST="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/stage2_annotated_id_20251010.txt"
 FILE_LIST="/home/u5gi/jiahezhao25.u5gi/jiahe/data/epic-grasps/best_dirs_annotations_full.json"
 

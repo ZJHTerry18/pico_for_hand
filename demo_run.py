@@ -51,7 +51,6 @@ def run_sample(folder_name, output_path, sample, args, **kwargs):
         save_phase_results(folder_name, output_path, sample, hand_phase_params=p3_hand_params, phase=3, do_eval=args.do_eval)            
 
     postprocess_results(output_path, args.do_eval)
-    print("Sample running finished.")
 
 def main(dataset, args, cfg = None, loss_weights = None):
     if cfg is None:
@@ -71,8 +70,8 @@ def main(dataset, args, cfg = None, loss_weights = None):
             single_data = True
             datas = [datas]
         for init_i, data in enumerate(datas):
-            if init_i != 0:
-                continue
+            # if init_i != 0:
+            #     continue
             sample, folder_name = data
             if not folder_name == args.sample_name:
             # if not folder_name == "P01_01_28797_28850_right_cup_1720.mp4":
